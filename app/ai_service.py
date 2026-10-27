@@ -292,7 +292,10 @@ Sua missão:
                 ".webp": "image/webp"
             }
             mime = mime_map.get(ext, "application/pdf")
-            uploaded_file = client.files.upload(file=file_path, mime_type=mime)
+            uploaded_file = client.files.upload(
+                file=file_path,
+                config={"mime_type": mime, "display_name": filename}
+            )
 
             response = _generate_with_fallback(
                 client,
