@@ -3,6 +3,33 @@ import json
 from typing import Dict, Any, List
 from . import database
 
+CANDIDATE_MODELS = [
+    'gemini-3.1-flash-lite',
+    'gemini-3-flash-preview',
+    'gemini-3.1-pro-preview',
+    'gemini-flash-latest'
+]
+
+def _generate_with_fallback(client, contents, config=None):
+    last_err = None
+    for model_name in CANDIDATE_MODELS:
+        try:
+            if config:
+                return client.models.generate_content(
+                    model=model_name,
+                    contents=contents,
+                    config=config
+                )
+            else:
+                return client.models.generate_content(
+                    model=model_name,
+                    contents=contents
+                )
+        except Exception as e:
+            last_err = e
+            continue
+    raise last_err
+
 def ask_ai(question: str) -> Dict[str, Any]:
     """
     Processa a pergunta do usuário:
@@ -70,11 +97,8 @@ Instruções para a resposta:
 4. Ao final, cite o título exato do procedimento de onde veio a informação.
 5. Se a dúvida não estiver 100% coberta pelos procedimentos fornecidos, responda o que for possível e alerte o usuário.
 """
-            # Chamada usando modelo flash
-            response = client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=prompt
-            )
+            # Chamada usando modelo flash resiliente
+            response = _generate_with_fallback(client, contents=prompt)
 
             return {
                 "answer": response.text,
@@ -162,8 +186,8 @@ Instruções Analíticas:
 """
 
         # 2. Chama o modelo com resposta forçada em JSON
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
+        response = _generate_with_fallback(
+            client,
             contents=[uploaded_file, prompt],
             config={"response_mime_type": "application/json"}
         )
