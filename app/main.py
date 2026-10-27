@@ -37,6 +37,16 @@ UPDATE_TOKEN = "mn_docubrain_auto_sync_token_2026"
 def startup_event():
     database.init_db()
     database.remove_sample_procedures_if_present()
+    def _ensure_pypdf():
+        try:
+            import pypdf
+        except ImportError:
+            try:
+                import sys
+                subprocess.run([sys.executable, "-m", "pip", "install", "pypdf"], capture_output=True, timeout=60)
+            except Exception:
+                pass
+    threading.Thread(target=_ensure_pypdf, daemon=True).start()
 
 # Modelos Pydantic
 class ProcedureCreate(BaseModel):

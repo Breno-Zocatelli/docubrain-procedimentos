@@ -907,9 +907,26 @@
                     body: formData
                 });
 
-                const data = await res.json();
+                let data = null;
+                const contentType = res.headers.get("content-type") || "";
+                if (contentType.includes("application/json")) {
+                    data = await res.json();
+                } else {
+                    const rawText = await res.text();
+                    if (!res.ok) {
+                        if (res.status === 413) {
+                            throw new Error("O arquivo é grande demais para o servidor. Tente enviar um manual de até 40MB ou focar em páginas específicas.");
+                        } else if (res.status === 504 || res.status === 524) {
+                            throw new Error("Tempo limite de leitura esgotado pelo servidor. Preencha o campo de 'Foco' com o erro ou peça exata para leitura direta e rápida.");
+                        } else {
+                            const cleanMsg = rawText.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim().slice(0, 120);
+                            throw new Error(`Falha no servidor (${res.status}): ${cleanMsg || 'Erro inesperado'}`);
+                        }
+                    }
+                }
+
                 if (!res.ok) {
-                    throw new Error(data.detail || 'Falha ao processar manual');
+                    throw new Error((data && data.detail) || `Falha ao processar manual (Código ${res.status})`);
                 }
 
                 if (data.title) document.getElementById('form-title').value = data.title;

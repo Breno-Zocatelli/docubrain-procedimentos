@@ -202,8 +202,8 @@ Instruções Analíticas:
             except Exception:
                 pass
 
-def extract_text_from_document(file_path: str, ext: str) -> str:
-    """Extrai texto puro de arquivos DOCX, TXT, MD, etc."""
+def extract_text_from_document(file_path: str, ext: str, focus: str = None) -> str:
+    """Extrai texto puro de arquivos PDF, DOCX, TXT, MD, etc."""
     if ext == ".docx":
         import zipfile
         import xml.etree.ElementTree as ET
@@ -221,6 +221,54 @@ def extract_text_from_document(file_path: str, ext: str) -> str:
         except Exception as e:
             print(f"Erro ao extrair docx: {e}")
             return ""
+    elif ext == ".pdf":
+        try:
+            import pypdf
+        except ImportError:
+            try:
+                import subprocess, sys
+                subprocess.run([sys.executable, "-m", "pip", "install", "pypdf"], capture_output=True, timeout=30)
+                import pypdf
+            except Exception:
+                pypdf = None
+
+        if pypdf:
+            try:
+                reader = pypdf.PdfReader(file_path)
+                pages_text = []
+                total_pages = len(reader.pages)
+                focus_terms = [t.lower().strip() for t in (focus or "").split() if len(t) > 2]
+
+                for idx, page in enumerate(reader.pages):
+                    try:
+                        ptxt = page.extract_text() or ""
+                    except Exception:
+                        ptxt = ""
+                    if ptxt and ptxt.strip():
+                        if total_pages > 40 and focus_terms:
+                            lower_p = ptxt.lower()
+                            if any(term in lower_p for term in focus_terms):
+                                pages_text.append(f"--- [Página {idx+1}] ---\n{ptxt.strip()}")
+                        else:
+                            pages_text.append(f"--- [Página {idx+1}] ---\n{ptxt.strip()}")
+
+                if not pages_text and total_pages > 40:
+                    for idx in range(min(40, total_pages)):
+                        try:
+                            ptxt = reader.pages[idx].extract_text() or ""
+                            if ptxt.strip():
+                                pages_text.append(f"--- [Página {idx+1}] ---\n{ptxt.strip()}")
+                        except Exception:
+                            pass
+
+                full_text = "\n\n".join(pages_text)
+                if len(full_text) > 180000:
+                    full_text = full_text[:180000] + "\n\n[... Restante do manual resumido para otimização ...]"
+                return full_text
+            except Exception as e:
+                print(f"Erro ao ler PDF com pypdf: {e}")
+                return ""
+        return ""
     elif ext in [".txt", ".md", ".csv", ".json", ".html", ".xml", ".log", ".rtf"]:
         try:
             with open(file_path, "r", encoding="utf-8") as f:
@@ -273,8 +321,8 @@ Sua missão:
 }}
 """
 
-        # 1. Se for Word (.docx) ou Texto (.txt, .md): extrai o texto diretamente para o Gemini
-        extracted_text = extract_text_from_document(file_path, ext)
+        # 1. Se for PDF, Word (.docx) ou Texto (.txt, .md): tenta extrair o texto diretamente para rapidez extrema
+        extracted_text = extract_text_from_document(file_path, ext, focus=focus)
         if extracted_text and extracted_text.strip():
             document_content = f"--- CONTEÚDO EXTRAÍDO DO DOCUMENTO ({filename}) ---\n{extracted_text}\n--- FIM DO DOCUMENTO ---"
             response = _generate_with_fallback(
@@ -283,7 +331,7 @@ Sua missão:
                 config={"response_mime_type": "application/json"}
             )
         else:
-            # 2. Se for PDF ou Imagem: upload via Gemini Files API com mime_type garantido
+            # 2. Se for Imagem escaneada ou PDF protegido: upload via Gemini Files API com mime_type garantido
             mime_map = {
                 ".pdf": "application/pdf",
                 ".png": "image/png",
@@ -296,6 +344,17 @@ Sua missão:
                 file=file_path,
                 config={"mime_type": mime, "display_name": filename}
             )
+
+            # Aguarda se o arquivo estiver em estado PROCESSING no Google
+            import time
+            max_wait = 25
+            while hasattr(uploaded_file, "state") and getattr(uploaded_file.state, "name", "") == "PROCESSING" and max_wait > 0:
+                time.sleep(1)
+                max_wait -= 1
+                try:
+                    uploaded_file = client.files.get(name=uploaded_file.name)
+                except Exception:
+                    break
 
             response = _generate_with_fallback(
                 client,
