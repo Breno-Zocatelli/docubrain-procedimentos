@@ -455,49 +455,80 @@
             <form id="procedure-form" onsubmit="handleSaveProcedure(event)" class="p-6 overflow-y-auto flex-1 space-y-4 text-sm">
                 <input type="hidden" id="form-id" value="" />
 
-                <!-- Banner de Transcrição por IA com Áudio -->
+                <!-- Central de Criação Inteligente com IA (Manual / PDF e Áudio) -->
                 <div class="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-850 border border-blue-200 dark:border-blue-900/50 shadow-sm space-y-3">
                     <div class="flex items-center justify-between flex-wrap gap-2">
                         <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow">
-                                <i data-lucide="mic" class="w-4 h-4"></i>
+                            <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow flex-shrink-0">
+                                <i data-lucide="sparkles" class="w-4 h-4"></i>
                             </div>
                             <div>
                                 <h4 class="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
-                                    <span>Ditado Inteligente com IA</span>
+                                    <span>Estruturação Inteligente com IA</span>
                                     <span class="text-[10px] font-semibold px-2 py-0.2 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
-                                        Transcrição Analítica
+                                        Manual (PDF) ou Voz
                                     </span>
                                 </h4>
                                 <p class="text-[11px] text-slate-500 dark:text-slate-400">
-                                    Grave ou envie um áudio explicando o procedimento. A IA estrutura todo o formulário sozinha!
+                                    Envie um manual técnico em PDF ou grave um áudio. A IA sintetiza e preenche o procedimento!
                                 </p>
                             </div>
                         </div>
 
-                        <!-- Botões de Ação de Áudio -->
-                        <div class="flex items-center gap-2">
-                            <!-- Input para upload de áudio -->
-                            <input type="file" id="audio-file-input" accept="audio/*" class="hidden" onchange="handleAudioFileSelected(event)" />
+                        <!-- Botões de Ação: Manual PDF e Áudio -->
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <!-- Input para upload de manual/PDF -->
+                            <input type="file" id="manual-file-input" accept=".pdf,.txt,.md,.png,.jpg,.jpeg,.docx" class="hidden" onchange="handleManualFileSelected(event)" />
                             
-                            <button type="button" onclick="document.getElementById('audio-file-input').click()" 
-                                id="btn-upload-audio"
-                                class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-white dark:hover:bg-slate-700 text-xs font-medium flex items-center gap-1.5 transition">
-                                <i data-lucide="file-audio" class="w-3.5 h-3.5 text-slate-500"></i>
-                                <span>Subir Áudio</span>
+                            <button type="button" onclick="document.getElementById('manual-file-input').click()" 
+                                id="btn-upload-manual"
+                                class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow transition">
+                                <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                                <span>Subir Manual (PDF)</span>
                             </button>
 
                             <button type="button" onclick="toggleAudioRecording()" 
                                 id="btn-record-audio"
-                                class="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow transition">
+                                class="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow transition">
                                 <span id="record-icon-dot" class="w-2 h-2 rounded-full bg-white animate-pulse hidden"></span>
                                 <i data-lucide="mic" id="record-icon-mic" class="w-3.5 h-3.5"></i>
-                                <span id="record-btn-text">Gravar Ditado</span>
+                                <span id="record-btn-text">Ditar</span>
+                            </button>
+
+                            <!-- Input para upload de áudio -->
+                            <input type="file" id="audio-file-input" accept="audio/*" class="hidden" onchange="handleAudioFileSelected(event)" />
+                            <button type="button" onclick="document.getElementById('audio-file-input').click()" 
+                                id="btn-upload-audio"
+                                class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-white dark:hover:bg-slate-700 text-xs font-medium flex items-center gap-1 transition"
+                                title="Subir arquivo de áudio">
+                                <i data-lucide="file-audio" class="w-3.5 h-3.5 text-slate-500"></i>
                             </button>
                         </div>
                     </div>
 
-                    <!-- Barra de Status da Gravação / Transcrição -->
+                    <!-- Caixa de Foco para o Manual PDF Selecionado -->
+                    <div id="manual-focus-box" class="hidden p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 text-xs space-y-2.5 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                <i data-lucide="file-check" class="w-4 h-4 text-emerald-500"></i>
+                                <span id="manual-name-display">manual.pdf</span>
+                            </span>
+                            <button type="button" onclick="cancelManualAnalysis()" class="text-slate-400 hover:text-slate-600 text-xs">Cancelar</button>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Qual procedimento ou tópico você quer extrair deste manual? (Opcional)</label>
+                            <input type="text" id="manual-focus-input" placeholder="Ex: Procedimento de troca do fusor / Solução do erro SC542 / Configuração de rede"
+                                class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs focus:ring-2 focus:ring-indigo-500" />
+                        </div>
+                        <div class="flex justify-end gap-2 pt-1">
+                            <button type="button" onclick="startManualAnalysis()" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow">
+                                <i data-lucide="wand-2" class="w-3.5 h-3.5"></i>
+                                <span>Extrair e Estruturar Procedimento com IA</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Barra de Status da Gravação / Transcrição / Manual -->
                     <div id="audio-status-box" class="hidden p-3 rounded-lg bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 text-xs space-y-2">
                         <div class="flex items-center justify-between">
                             <span id="audio-status-msg" class="font-medium text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
@@ -826,6 +857,78 @@
             } catch (err) {
                 statusMsg.innerHTML = '⚠️ ' + err.message;
                 statusMsg.className = 'font-medium text-red-600 dark:text-red-400';
+            }
+        }
+
+        // ==========================================
+        // Leitura & Extração Analítica de Manuais (PDF / Docs) com IA
+        // ==========================================
+        let pendingManualFile = null;
+
+        function handleManualFileSelected(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            pendingManualFile = file;
+
+            document.getElementById('manual-name-display').textContent = file.name + ' (' + (file.size / (1024 * 1024)).toFixed(1) + ' MB)';
+            document.getElementById('manual-focus-box').classList.remove('hidden');
+            document.getElementById('audio-status-box').classList.add('hidden');
+            e.target.value = '';
+            lucide.createIcons();
+        }
+
+        function cancelManualAnalysis() {
+            pendingManualFile = null;
+            document.getElementById('manual-focus-box').classList.add('hidden');
+            document.getElementById('manual-focus-input').value = '';
+        }
+
+        async function startManualAnalysis() {
+            if (!pendingManualFile) return;
+
+            const focus = document.getElementById('manual-focus-input').value.trim();
+            const statusBox = document.getElementById('audio-status-box');
+            const statusMsg = document.getElementById('audio-status-msg');
+
+            document.getElementById('manual-focus-box').classList.add('hidden');
+            statusBox.classList.remove('hidden');
+            statusMsg.className = 'font-medium text-indigo-600 dark:text-indigo-400 flex items-center gap-2';
+            statusMsg.innerHTML = '<span class="animate-spin inline-block mr-1">📖</span> A IA está lendo o manual técnico (' + pendingManualFile.name + ') e estruturando o procedimento...';
+
+            const formData = new FormData();
+            formData.append('file', pendingManualFile);
+            if (focus) {
+                formData.append('focus', focus);
+            }
+
+            try {
+                const res = await fetch('/api/upload-manual', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.detail || 'Falha ao processar manual');
+                }
+
+                if (data.title) document.getElementById('form-title').value = data.title;
+                if (data.equipment) document.getElementById('form-equipment').value = data.equipment;
+                if (data.category) document.getElementById('form-category').value = data.category;
+                if (data.tags) document.getElementById('form-tags').value = data.tags;
+                if (data.summary) document.getElementById('form-summary').value = data.summary;
+                if (data.content) document.getElementById('form-content').value = data.content;
+
+                statusMsg.innerHTML = '✨ <strong>Manual sintetizado com sucesso pela IA!</strong> O procedimento foi estruturado nos campos abaixo.';
+                statusMsg.className = 'font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-2';
+
+                document.getElementById('form-title').scrollIntoView({ behavior: 'smooth' });
+            } catch (err) {
+                statusMsg.innerHTML = '⚠️ ' + err.message;
+                statusMsg.className = 'font-medium text-red-600 dark:text-red-400';
+            } finally {
+                pendingManualFile = null;
+                document.getElementById('manual-focus-input').value = '';
             }
         }
 

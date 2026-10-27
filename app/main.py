@@ -1,7 +1,7 @@
 import os
 import markdown
 import uuid
-from fastapi import FastAPI, HTTPException, Request, Query, UploadFile, File
+from fastapi import FastAPI, HTTPException, Request, Query, UploadFile, File, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -182,6 +182,48 @@ async def transcribe_audio_endpoint(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao processar áudio com IA: {e}")
+    finally:
+        try:
+            if os.path.exists(filepath):
+                os.remove(filepath)
+        except Exception:
+            pass
+
+ALLOWED_MANUAL_EXTENSIONS = {".pdf", ".txt", ".md", ".png", ".jpg", ".jpeg", ".webp", ".docx"}
+
+@app.post("/api/upload-manual")
+async def upload_manual_endpoint(
+    file: UploadFile = File(...),
+    focus: Optional[str] = Form(None)
+):
+    ext = os.path.splitext(file.filename)[1].lower() if file.filename else ".pdf"
+    if ext not in ALLOWED_MANUAL_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail="Formato não suportado. Envie arquivos PDF, TXT, MD ou Imagens de manuais."
+        )
+
+    filename = f"manual_{uuid.uuid4().hex[:12]}{ext}"
+    filepath = os.path.join(UPLOADS_DIR, filename)
+
+    contents = await file.read()
+    if len(contents) > 45 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="O arquivo do manual deve ter no máximo 45MB.")
+
+    with open(filepath, "wb") as f:
+        f.write(contents)
+
+    try:
+        structured_data = ai_service.analyze_and_extract_manual(
+            file_path=filepath,
+            filename=file.filename or "manual.pdf",
+            focus=focus
+        )
+        return structured_data
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao analisar manual com IA: {e}")
     finally:
         try:
             if os.path.exists(filepath):

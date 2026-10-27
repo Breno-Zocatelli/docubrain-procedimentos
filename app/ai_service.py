@@ -201,3 +201,76 @@ Instruções Analíticas:
                 client.files.delete(name=uploaded_file.name)
             except Exception:
                 pass
+
+def analyze_and_extract_manual(file_path: str, filename: str, focus: str = None) -> Dict[str, Any]:
+    """
+    Recebe um manual técnico ou documento (PDF, TXT, Imagem escaneada),
+    envia para o Gemini multimodal, analisa o conteúdo técnico
+    e sintetiza um procedimento operacional limpo, estruturado e analítico.
+    """
+    api_key = database.get_setting("gemini_api_key") or os.environ.get("GEMINI_API_KEY", "")
+    if not api_key or not api_key.strip():
+        raise ValueError(
+            "Chave de API do Gemini não configurada. "
+            "Adicione sua chave gratuita do Google AI Studio na aba Configurações para processar manuais e documentos."
+        )
+
+    from google import genai
+    client = genai.Client(api_key=api_key.strip())
+
+    uploaded_file = None
+    try:
+        ext = os.path.splitext(filename)[1].lower() if filename else ".pdf"
+        mime_map = {
+            ".pdf": "application/pdf",
+            ".txt": "text/plain",
+            ".md": "text/markdown",
+            ".png": "image/png",
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".webp": "image/webp"
+        }
+        mime = mime_map.get(ext)
+
+        if mime:
+            uploaded_file = client.files.upload(file=file_path, mime_type=mime)
+        else:
+            uploaded_file = client.files.upload(file=file_path)
+
+        focus_instruction = f"\nO usuário solicitou dar ênfase especial ao seguinte tópico ou dúvida do manual: \"{focus}\"." if focus and focus.strip() else ""
+
+        prompt = f"""Você é um Engenheiro de Processos Técnicos e Especialista em Manuais de Serviço e Operação.
+Analise detalhadamente o manual/documento técnico anexo: "{filename}".
+{focus_instruction}
+
+Sua missão:
+1. Identificar o equipamento, máquina ou sistema principal abordado no documento.
+2. Extrair o procedimento operacional, roteiro de manutenção, solução de erro ou configuração descrita.
+3. Transformar o conteúdo bruto ou denso do manual em um procedimento analítico, limpo, prático e didático para a equipe de campo e escritório.
+4. Identificar ferramentas necessárias, códigos de peças, códigos de erro e precauções de segurança.
+5. Retornar ESTRITAMENTE um objeto JSON válido com o seguinte formato:
+
+{{
+  "title": "Título claro, descritivo e padronizado do procedimento",
+  "equipment": "Nome e modelo exato do equipamento/sistema identificado (ex: Ricoh MP 301, Kyocera TaskAlfa, DataBit)",
+  "category": "Categoria técnica adequada (ex: Impressoras & Multifuncionais, Manuais Técnicos, Hardware, ERP & Sistemas)",
+  "tags": "tags, separadas, por, virgula, codigos, modelos, pecas",
+  "summary": "Resumo executivo de 1 a 2 frases destacando a finalidade do procedimento e quando aplicá-lo",
+  "content": "Conteúdo analítico completo em Markdown estruturado com: ### Objetivo & Escopo, ### Ferramentas / Pré-requisitos / Peças, ### Passo a Passo Detalhado (1., 2., 3. com subitens se necessário), ### Avisos de Segurança & Códigos de Erro Relacionados"
+}}
+"""
+
+        response = _generate_with_fallback(
+            client,
+            contents=[uploaded_file, prompt],
+            config={"response_mime_type": "application/json"}
+        )
+
+        result = json.loads(response.text)
+        return result
+    finally:
+        if uploaded_file and hasattr(uploaded_file, 'name'):
+            try:
+                client.files.delete(name=uploaded_file.name)
+            except Exception:
+                pass
