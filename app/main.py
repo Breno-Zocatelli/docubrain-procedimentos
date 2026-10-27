@@ -6,6 +6,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from typing import Optional, List
+import subprocess
+import threading
+import urllib.request
+import zipfile
+import io
+import shutil
 
 from . import database
 from . import ai_service
@@ -13,8 +19,11 @@ from . import ai_service
 app = FastAPI(title="Base de Procedimentos Operacionais - DocuBrain", version="1.0.0")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(BASE_DIR)
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
+
+UPDATE_TOKEN = "mn_docubrain_auto_sync_token_2026"
 
 # Inicializa o banco de dados na inicialização
 @app.on_event("startup")
@@ -144,3 +153,70 @@ def get_settings():
 def save_settings(payload: SettingsUpdate):
     database.set_setting("gemini_api_key", payload.gemini_api_key.strip() if payload.gemini_api_key else "")
     return {"message": "Configurações salvas com sucesso!"}
+
+def _restart_server():
+    import time
+    time.sleep(1)
+    os._exit(0)
+
+@app.post("/api/system/update")
+def trigger_system_update(token: str = Query(...)):
+    if token != UPDATE_TOKEN:
+        raise HTTPException(status_code=403, detail="Token de atualização inválido")
+    
+    updated_via = ""
+    output_log = ""
+    
+    # 1. Tenta via git pull se git estiver disponível
+    try:
+        git_res = subprocess.run(
+            ["git", "pull", "origin", "main"],
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=20
+        )
+        if git_res.returncode == 0:
+            updated_via = "git"
+            output_log = git_res.stdout
+    except Exception:
+        pass
+
+    # 2. Se git não rodou, baixa direto o zip do GitHub
+    if not updated_via:
+        try:
+            zip_url = "https://github.com/Breno-Zocatelli/docubrain-procedimentos/archive/refs/heads/main.zip"
+            req = urllib.request.Request(zip_url, headers={"User-Agent": "DocuBrain-Updater"})
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                zip_data = resp.read()
+            
+            with zipfile.ZipFile(io.BytesIO(zip_data)) as z:
+                for member in z.infolist():
+                    parts = member.filename.split("/", 1)
+                    if len(parts) > 1 and parts[1]:
+                        rel_path = parts[1]
+                        # Nunca sobrescreve os dados e anotações do usuário
+                        if rel_path.startswith("data/"):
+                            continue
+                        target_file = os.path.join(PROJECT_ROOT, rel_path)
+                        if member.is_dir():
+                            os.makedirs(target_file, exist_ok=True)
+                        else:
+                            os.makedirs(os.path.dirname(target_file), exist_ok=True)
+                            with z.open(member) as source, open(target_file, "wb") as dest:
+                                shutil.copyfileobj(source, dest)
+            
+            updated_via = "zip_download"
+            output_log = "Arquivos atualizados com sucesso diretamente do GitHub!"
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Erro ao atualizar: {e}")
+
+    # Agenda reinício gracioso do contêiner Docker
+    threading.Thread(target=_restart_server, daemon=True).start()
+
+    return {
+        "status": "success",
+        "method": updated_via,
+        "message": "Código atualizado com sucesso! Reiniciando contêiner...",
+        "log": output_log
+    }
