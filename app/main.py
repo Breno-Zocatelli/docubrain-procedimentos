@@ -206,10 +206,9 @@ def get_stats():
 @app.get("/api/settings")
 def get_settings():
     key = database.get_setting("gemini_api_key", "")
-    masked_key = f"{key[:6]}...{key[-4:]}" if len(key) > 10 else ("Configurada" if key else "")
     return {
         "has_key": bool(key),
-        "masked_key": masked_key
+        "status": "Ativa e Conectada" if bool(key) else "Não configurada"
     }
 
 @app.post("/api/settings")
