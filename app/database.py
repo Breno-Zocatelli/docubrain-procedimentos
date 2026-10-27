@@ -82,14 +82,6 @@ def init_db():
     """)
 
     conn.commit()
-
-    # Inserir alguns procedimentos de exemplo se a tabela estiver vazia
-    cursor.execute("SELECT COUNT(*) as count FROM procedures")
-    count = cursor.fetchone()["count"]
-    if count == 0:
-        _insert_initial_samples(cursor)
-        conn.commit()
-
     conn.close()
 
 def _sanitize_filename(name: str) -> str:
@@ -291,93 +283,20 @@ def set_setting(key: str, value: str):
     conn.commit()
     conn.close()
 
-def _insert_initial_samples(cursor):
-    """Insere exemplos reais de procedimentos para o usuário já ver o sistema funcionando."""
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    samples = [
-        (
-            "Reset de Fusor e Limpeza de Código de Erro SC542",
-            "Ricoh Aficio MP 301 / MP 201",
-            "Impressoras & Multifuncionais",
-            "sc542, fusor, reset, codigo erro, assistencia tecnica, ricoh",
-            "Procedimento para limpar código de erro SC542 de aquecimento do fusor após verificação do termostato.",
-            """### Descrição do Problema
-O código **SC542** ocorre na linha Ricoh quando a unidade fusora não atinge a temperatura operacional no tempo determinado (falha de aquecimento ou desarme do termostato).
-
-### Ferramentas / Pré-requisitos
-- Verificar se a lâmpada do fusor e os termistores estão fisicamente íntegros.
-- Máquina conectada a tomada com aterramento correto.
-
-### Passo a Passo de Reset no Modo SP (Service Program)
-1. Pressione a tecla **Amarela (Clear Mode)**.
-2. Digite no teclado numérico: **1 - 0 - 7**.
-3. Pressione e segure a tecla **Vermelha (Clear/Stop)** por 5 segundos até o visor mudar.
-4. Na tela de toque, selecione **System SP**.
-5. No teclado numérico, digite **5 - 8 - 1 - 0** e aperte **#** (ou Enter).
-6. Localize o item **SC Reset**.
-7. Toque no botão **Execute** na tela.
-8. Desligue o interruptor principal da máquina, aguarde 10 segundos e ligue novamente.
-
-> [!WARNING] Atenção
-> Nunca faça o reset sem inspecionar visualmente o fusor. Se houver toner acumulado ou termistor danificado, o erro voltará a ocorrer.
-""",
-            now, now
-        ),
-        (
-            "Emissão de Requisição de Suprimento (Operação 02)",
-            "DataBit / DataClassic CRM",
-            "Sistemas & ERP",
-            "databit, requisicao, suprimento, toner, operacao 02, faturamento",
-            "Passo a passo para gerar pedido de remessa de toner e peças pelo DataClassic.",
-            """### Objetivo
-Lançar no DataBit a saída de toner ou insumos para atendimento de contrato com emissão de nota fiscal ou remessa direta.
-
-### Passo a Passo
-1. Acesse o menu **Módulos > Suprimentos > Requisições de Insumos**.
-2. Clique no botão **Novo** (ou F2).
-3. Selecione o **Código do Cliente / Contrato**:
-   - Pressione F9 para pesquisar pela razão social ou CNPJ.
-4. No campo **Tipo de Operação**, selecione **02 - Remessa de Suprimento p/ Contrato**.
-5. Informe o **Número de Série do Equipamento** (campo obrigatório para controle de rendimento).
-6. Na aba **Itens**:
-   - Adicione o código do produto (ex: Toner Preto).
-   - Insira a quantidade solicitada (atenção à política de no máximo 1 frasco reserva).
-   - Registre a contagem atual do medidor informada pelo cliente.
-7. Clique em **Gravar e Confirmar**.
-8. Imprima a requisição para entrega pelo motoboy/logística.
-""",
-            now, now
-        ),
-        (
-            "Ajuste Manual de Ponto e Inclusão de Atestado Médico",
-            "TopPonto Web",
-            "RH & Ponto Eletrônico",
-            "topponto, atestado, falta, espelho de ponto, batida, justificativa",
-            "Como abonar faltas e registrar atestados no espelho de ponto do colaborador no TopPonto.",
-            """### Quando Utilizar
-Quando o funcionário esqueceu de registrar a batida ou apresentou atestado médico/declaração de comparecimento.
-
-### Passo a Passo
-1. No menu principal do TopPonto, acesse **Cálculos > Cartão Ponto (Espelho)**.
-2. Selecione o **Colaborador** e o período desejado.
-3. Clique em **Buscar**.
-4. Localize a linha referente ao dia da ocorrência:
-   - **Caso seja esquecimento de batida:**
-     - Dê duplo clique no campo de horário correspondente (Entrada 1, Saída 1, etc.).
-     - Digite o horário correto.
-     - No campo motivo, selecione *"Esquecimento de registro"*.
-   - **Caso seja Atestado Médico (Abono):**
-     - Clique na aba **Ocorrências / Afastamentos**.
-     - Clique em **Incluir Afastamento**.
-     - Selecione o motivo *"Atestado Médico"* e informe as horas ou dias abonados.
-5. Clique em **Recalcular** e depois em **Salvar**.
-""",
-            now, now
-        )
+def remove_sample_procedures_if_present():
+    """Remove os 3 procedimentos de exemplo para garantir que o banco fique limpo."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    sample_titles = [
+        "Reset de Fusor e Limpeza de Código de Erro SC542",
+        "Emissão de Requisição de Suprimento (Operação 02)",
+        "Ajuste Manual de Ponto e Inclusão de Atestado Médico"
     ]
-
-    cursor.executemany("""
-    INSERT INTO procedures (title, equipment, category, tags, summary, content, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, samples)
+    for title in sample_titles:
+        cursor.execute("SELECT id FROM procedures WHERE title = ?", (title,))
+        row = cursor.fetchone()
+        if row:
+            proc_id = row["id"]
+            cursor.execute("DELETE FROM procedures WHERE id = ?", (proc_id,))
+    conn.commit()
+    conn.close()

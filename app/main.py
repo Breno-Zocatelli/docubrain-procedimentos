@@ -36,6 +36,7 @@ UPDATE_TOKEN = "mn_docubrain_auto_sync_token_2026"
 @app.on_event("startup")
 def startup_event():
     database.init_db()
+    database.remove_sample_procedures_if_present()
 
 # Modelos Pydantic
 class ProcedureCreate(BaseModel):
