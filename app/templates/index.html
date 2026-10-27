@@ -397,6 +397,68 @@
             <form id="procedure-form" onsubmit="handleSaveProcedure(event)" class="p-6 overflow-y-auto flex-1 space-y-4 text-sm">
                 <input type="hidden" id="form-id" value="" />
 
+                <!-- Banner de Transcrição por IA com Áudio -->
+                <div class="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-850 border border-blue-200 dark:border-blue-900/50 shadow-sm space-y-3">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow">
+                                <i data-lucide="mic" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                                    <span>Ditado Inteligente com IA</span>
+                                    <span class="text-[10px] font-semibold px-2 py-0.2 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
+                                        Transcrição Analítica
+                                    </span>
+                                </h4>
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                                    Grave ou envie um áudio explicando o procedimento. A IA estrutura todo o formulário sozinha!
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Botões de Ação de Áudio -->
+                        <div class="flex items-center gap-2">
+                            <!-- Input para upload de áudio -->
+                            <input type="file" id="audio-file-input" accept="audio/*" class="hidden" onchange="handleAudioFileSelected(event)" />
+                            
+                            <button type="button" onclick="document.getElementById('audio-file-input').click()" 
+                                id="btn-upload-audio"
+                                class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-white dark:hover:bg-slate-700 text-xs font-medium flex items-center gap-1.5 transition">
+                                <i data-lucide="file-audio" class="w-3.5 h-3.5 text-slate-500"></i>
+                                <span>Subir Áudio</span>
+                            </button>
+
+                            <button type="button" onclick="toggleAudioRecording()" 
+                                id="btn-record-audio"
+                                class="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow transition">
+                                <span id="record-icon-dot" class="w-2 h-2 rounded-full bg-white animate-pulse hidden"></span>
+                                <i data-lucide="mic" id="record-icon-mic" class="w-3.5 h-3.5"></i>
+                                <span id="record-btn-text">Gravar Ditado</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Barra de Status da Gravação / Transcrição -->
+                    <div id="audio-status-box" class="hidden p-3 rounded-lg bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 text-xs space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span id="audio-status-msg" class="font-medium text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
+                                <span class="animate-spin inline-block">⏳</span> Processando...
+                            </span>
+                            <span id="recording-timer" class="font-mono text-xs font-bold text-red-500 hidden">00:00</span>
+                        </div>
+                        <div id="recording-controls" class="hidden flex items-center gap-2 pt-1">
+                            <button type="button" onclick="stopAndProcessRecording()" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-medium text-xs flex items-center gap-1">
+                                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                                <span>Concluir e Estruturar com IA</span>
+                            </button>
+                            <button type="button" onclick="cancelAudioRecording()" class="px-3 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-medium text-xs">
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="space-y-1">
                         <label class="font-semibold text-xs">Título do Procedimento *</label>
@@ -564,6 +626,148 @@
                 alert('Erro ao enviar imagem: ' + err.message);
             } finally {
                 if (indicator) indicator.classList.add('hidden');
+            }
+        }
+
+        // ==========================================
+        // Ditado Inteligente & Transcrição de Áudio com IA
+        // ==========================================
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recordingTimerInterval = null;
+        let recordingSeconds = 0;
+
+        async function toggleAudioRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                stopAndProcessRecording();
+                return;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) audioChunks.push(event.data);
+                };
+
+                mediaRecorder.start();
+                startRecordingUI();
+            } catch (err) {
+                alert('Não foi possível acessar o microfone: ' + err.message + '\nVerifique se o navegador tem permissão de acesso ao microfone.');
+            }
+        }
+
+        function startRecordingUI() {
+            document.getElementById('record-icon-dot').classList.remove('hidden');
+            document.getElementById('record-icon-mic').classList.add('hidden');
+            document.getElementById('record-btn-text').textContent = 'Gravando...';
+            document.getElementById('btn-record-audio').className = 'px-3.5 py-1.5 rounded-lg bg-red-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow ring-2 ring-red-400';
+
+            const statusBox = document.getElementById('audio-status-box');
+            const statusMsg = document.getElementById('audio-status-msg');
+            const timerEl = document.getElementById('recording-timer');
+            const controls = document.getElementById('recording-controls');
+
+            statusBox.classList.remove('hidden');
+            controls.classList.remove('hidden');
+            timerEl.classList.remove('hidden');
+            statusMsg.className = 'font-medium text-indigo-600 dark:text-indigo-400 flex items-center gap-2';
+            statusMsg.innerHTML = '<span class="inline-block w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span> Microfone ativo. Fale seu procedimento com clareza...';
+
+            recordingSeconds = 0;
+            timerEl.textContent = '00:00';
+            clearInterval(recordingTimerInterval);
+            recordingTimerInterval = setInterval(() => {
+                recordingSeconds++;
+                const mins = String(Math.floor(recordingSeconds / 60)).padStart(2, '0');
+                const secs = String(recordingSeconds % 60).padStart(2, '0');
+                timerEl.textContent = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function stopAndProcessRecording() {
+            if (!mediaRecorder) return;
+            clearInterval(recordingTimerInterval);
+
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                if (mediaRecorder.stream) {
+                    mediaRecorder.stream.getTracks().forEach(t => t.stop());
+                }
+                resetRecordingUI();
+                await processAudioWithAI(audioBlob, 'ditado_procedimento.webm');
+            };
+
+            mediaRecorder.stop();
+        }
+
+        function cancelAudioRecording() {
+            if (mediaRecorder) {
+                clearInterval(recordingTimerInterval);
+                if (mediaRecorder.stream) {
+                    mediaRecorder.stream.getTracks().forEach(t => t.stop());
+                }
+                mediaRecorder = null;
+            }
+            resetRecordingUI();
+            document.getElementById('audio-status-box').classList.add('hidden');
+        }
+
+        function resetRecordingUI() {
+            document.getElementById('record-icon-dot').classList.add('hidden');
+            document.getElementById('record-icon-mic').classList.remove('hidden');
+            document.getElementById('record-btn-text').textContent = 'Gravar Ditado';
+            document.getElementById('btn-record-audio').className = 'px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow transition';
+            document.getElementById('recording-controls').classList.add('hidden');
+            document.getElementById('recording-timer').classList.add('hidden');
+            lucide.createIcons();
+        }
+
+        function handleAudioFileSelected(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            processAudioWithAI(file, file.name);
+            e.target.value = '';
+        }
+
+        async function processAudioWithAI(fileOrBlob, filename) {
+            const statusBox = document.getElementById('audio-status-box');
+            const statusMsg = document.getElementById('audio-status-msg');
+
+            statusBox.classList.remove('hidden');
+            statusMsg.className = 'font-medium text-indigo-600 dark:text-indigo-400 flex items-center gap-2';
+            statusMsg.innerHTML = '<span class="animate-spin inline-block mr-1">🧠</span> A IA está ouvindo, transcrevendo e estruturando o procedimento analiticamente...';
+
+            const formData = new FormData();
+            formData.append('file', fileOrBlob, filename);
+
+            try {
+                const res = await fetch('/api/transcribe-audio', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.detail || 'Falha na transcrição');
+                }
+
+                if (data.title) document.getElementById('form-title').value = data.title;
+                if (data.equipment) document.getElementById('form-equipment').value = data.equipment;
+                if (data.category) document.getElementById('form-category').value = data.category;
+                if (data.tags) document.getElementById('form-tags').value = data.tags;
+                if (data.summary) document.getElementById('form-summary').value = data.summary;
+                if (data.content) document.getElementById('form-content').value = data.content;
+
+                statusMsg.innerHTML = '✨ <strong>Procedimento estruturado com sucesso pela IA!</strong> Os campos abaixo foram preenchidos.';
+                statusMsg.className = 'font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-2';
+
+                document.getElementById('form-title').scrollIntoView({ behavior: 'smooth' });
+            } catch (err) {
+                statusMsg.innerHTML = '⚠️ ' + err.message;
+                statusMsg.className = 'font-medium text-red-600 dark:text-red-400';
             }
         }
 

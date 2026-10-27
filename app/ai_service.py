@@ -1,4 +1,5 @@
 import os
+import json
 from typing import Dict, Any, List
 from . import database
 
@@ -119,3 +120,60 @@ def _generate_local_synthesis(question: str, sources: List[Dict], contexts: List
         "sources": sources,
         "mode": "local"
     }
+
+def transcribe_and_structure_audio(audio_path: str) -> Dict[str, Any]:
+    """
+    Recebe um arquivo de áudio gravado ou enviado pelo usuário,
+    envia para o Gemini multimodal, transcreve e estrutura analiticamente
+    em formato padronizado de procedimento operacional.
+    """
+    api_key = database.get_setting("gemini_api_key") or os.environ.get("GEMINI_API_KEY", "")
+    if not api_key or not api_key.strip():
+        raise ValueError(
+            "Chave de API do Gemini não configurada. "
+            "Para utilizar a Transcrição e Estruturação de Áudio por IA, adicione sua chave gratuita do Google AI Studio na aba Configurações."
+        )
+
+    from google import genai
+    client = genai.Client(api_key=api_key.strip())
+
+    uploaded_file = None
+    try:
+        # 1. Faz upload do arquivo de áudio para a API do Gemini
+        uploaded_file = client.files.upload(file=audio_path)
+
+        prompt = """Você é um Engenheiro de Processos e Documentação Técnica Operacional de alto nível.
+Sua missão é ouvir o áudio fornecido, que é uma gravação verbal explicativa de um procedimento operacional, manutenção de equipamento, solução de erro ou rotina de sistema.
+
+Instruções Analíticas:
+1. Ouça com extrema atenção cada detalhe falado (códigos de erro, botões, menus, telas, peças, comandos numéricos, cuidados de segurança).
+2. Transcreva com fidelidade e organize analiticamente as ideias em uma ordem lógica e cronológica.
+3. Se o áudio tiver gaguejos, hesitações ou correções ("não, aperte o 2 em vez do 3"), utilize a versão correta corrigida pelo locutor.
+4. Estruture a resposta OBRIGATORIAMENTE no seguinte formato JSON estrito:
+
+{
+  "title": "Título conciso, claro e técnico para o procedimento",
+  "equipment": "Nome do equipamento ou sistema identificado (ex: Ricoh MP 301, Kyocera, DataBit, TopPonto)",
+  "category": "Categoria técnica sugerida (ex: Impressoras & Multifuncionais, Sistemas & ERP, RH & Ponto, Redes & TI)",
+  "tags": "tags, separadas, por, virgula, codigos, pecas, atalhos",
+  "summary": "Resumo executivo de 1 a 2 frases explicando o objetivo e quando este procedimento deve ser aplicado",
+  "content": "Conteúdo completo e analítico em Markdown estruturado com: ### Objetivo, ### Pré-requisitos & Ferramentas, ### Passo a Passo Detalhado (1., 2., 3.), ### Observações Importantes & Solução de Problemas"
+}
+"""
+
+        # 2. Chama o modelo com resposta forçada em JSON
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=[uploaded_file, prompt],
+            config={"response_mime_type": "application/json"}
+        )
+
+        result = json.loads(response.text)
+        return result
+    finally:
+        # Limpa o arquivo no Gemini para não ocupar armazenamento
+        if uploaded_file and hasattr(uploaded_file, 'name'):
+            try:
+                client.files.delete(name=uploaded_file.name)
+            except Exception:
+                pass

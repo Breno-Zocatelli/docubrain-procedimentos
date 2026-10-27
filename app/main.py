@@ -156,6 +156,38 @@ async def upload_image(file: UploadFile = File(...)):
         "filename": filename
     }
 
+ALLOWED_AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".ogg", ".webm", ".aac", ".flac"}
+
+@app.post("/api/transcribe-audio")
+async def transcribe_audio_endpoint(file: UploadFile = File(...)):
+    ext = os.path.splitext(file.filename)[1].lower() if file.filename else ".webm"
+    if ext not in ALLOWED_AUDIO_EXTENSIONS:
+        ext = ".webm"
+    
+    filename = f"audio_{uuid.uuid4().hex[:12]}{ext}"
+    filepath = os.path.join(UPLOADS_DIR, filename)
+
+    contents = await file.read()
+    if len(contents) > 35 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="O arquivo de áudio deve ter no máximo 35MB.")
+
+    with open(filepath, "wb") as f:
+        f.write(contents)
+
+    try:
+        structured_data = ai_service.transcribe_and_structure_audio(filepath)
+        return structured_data
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao processar áudio com IA: {e}")
+    finally:
+        try:
+            if os.path.exists(filepath):
+                os.remove(filepath)
+        except Exception:
+            pass
+
 @app.post("/api/ask")
 def ask_question(payload: AskRequest):
     result = ai_service.ask_ai(payload.question)
