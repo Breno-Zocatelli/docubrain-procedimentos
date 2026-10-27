@@ -4,6 +4,8 @@ import re
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
+from . import auth
+
 DB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 DB_PATH = os.path.join(DB_DIR, "knowledge.db")
 MD_EXPORT_DIR = os.path.join(DB_DIR, "procedimentos")
@@ -82,6 +84,11 @@ def init_db():
     """)
 
     conn.commit()
+
+    # Inicializa tabelas de usuários e sessões
+    auth.init_auth_tables(conn)
+    auth.seed_default_users(conn)
+
     conn.close()
 
 def _sanitize_filename(name: str) -> str:

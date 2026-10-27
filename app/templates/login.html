@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Acesso Restrito - DocuBrain Procedimentos</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: { 850: '#151e2e' }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="h-full bg-slate-900 text-slate-100 flex items-center justify-center p-4 sm:p-6 selection:bg-indigo-500 selection:text-white">
+
+    <!-- Fundo com gradiente sutil -->
+    <div class="fixed inset-0 bg-gradient-to-br from-indigo-950/40 via-slate-900 to-slate-950 pointer-events-none"></div>
+
+    <div class="relative w-full max-w-md">
+        <!-- Card de Login -->
+        <div class="bg-slate-800/90 backdrop-blur-xl border border-slate-700/80 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6">
+            
+            <!-- Cabeçalho / Identidade Visual -->
+            <div class="text-center space-y-3">
+                <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-blue-500 shadow-lg shadow-indigo-500/25 text-white">
+                    <i data-lucide="shield-check" class="w-7 h-7"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
+                        <span>DocuBrain</span>
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium">Seguro</span>
+                    </h1>
+                    <p class="text-xs text-slate-400 mt-1">Base de Procedimentos Técnicos & Operacionais</p>
+                </div>
+            </div>
+
+            <!-- Alerta de Erro -->
+            <div id="login-error" class="hidden p-3.5 rounded-xl bg-red-950/60 border border-red-800/60 text-red-200 text-xs flex items-center gap-2.5">
+                <i data-lucide="alert-circle" class="w-4 h-4 text-red-400 flex-shrink-0"></i>
+                <span id="login-error-msg">Usuário ou senha incorretos.</span>
+            </div>
+
+            <!-- Formulário -->
+            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+                <!-- Usuário -->
+                <div>
+                    <label for="username" class="block text-xs font-medium text-slate-300 mb-1.5">Usuário ou E-mail</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <i data-lucide="user" class="w-4 h-4"></i>
+                        </div>
+                        <input 
+                            type="text" 
+                            id="username" 
+                            name="username" 
+                            required 
+                            autofocus 
+                            autocomplete="username"
+                            placeholder="Digite seu usuário..."
+                            class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                        />
+                    </div>
+                </div>
+
+                <!-- Senha -->
+                <div>
+                    <label for="password" class="block text-xs font-medium text-slate-300 mb-1.5">Senha de Acesso</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <i data-lucide="lock" class="w-4 h-4"></i>
+                        </div>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            required 
+                            autocomplete="current-password"
+                            placeholder="••••••••••••"
+                            class="w-full pl-10 pr-11 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                        />
+                        <button 
+                            type="button" 
+                            onclick="togglePasswordVisibility()" 
+                            class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-200 transition"
+                            tabindex="-1"
+                        >
+                            <i id="eye-icon" data-lucide="eye" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Botão de Login -->
+                <button 
+                    type="submit" 
+                    id="btn-login"
+                    class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-semibold text-sm shadow-lg shadow-indigo-600/30 hover:shadow-indigo-600/50 flex items-center justify-center gap-2 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                    <span id="btn-login-text">Acessar Sistema</span>
+                    <i id="btn-login-icon" data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+            </form>
+
+            <div class="text-center pt-2 border-t border-slate-700/60">
+                <p class="text-[11px] text-slate-400">
+                    Acesso corporativo seguro • MN Service Informática
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function togglePasswordVisibility() {
+            const passInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('eye-icon');
+            if (passInput.type === 'password') {
+                passInput.type = 'text';
+                eyeIcon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                passInput.type = 'password';
+                eyeIcon.setAttribute('data-lucide', 'eye');
+            }
+            lucide.createIcons();
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const errBox = document.getElementById('login-error');
+            const errMsg = document.getElementById('login-error-msg');
+            const btn = document.getElementById('btn-login');
+            const btnText = document.getElementById('btn-login-text');
+
+            if (!username || !password) return;
+
+            errBox.classList.add('hidden');
+            btn.disabled = true;
+            btnText.textContent = 'Verificando...';
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.detail || 'Usuário ou senha inválidos.');
+                }
+
+                btnText.textContent = 'Acesso Autorizado!';
+                window.location.href = '/';
+            } catch (err) {
+                errMsg.textContent = err.message;
+                errBox.classList.remove('hidden');
+                btn.disabled = false;
+                btnText.textContent = 'Acessar Sistema';
+                lucide.createIcons();
+            }
+        }
+    </script>
+</body>
+</html>
