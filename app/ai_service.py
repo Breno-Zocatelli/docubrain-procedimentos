@@ -202,9 +202,37 @@ Instruções Analíticas:
             except Exception:
                 pass
 
+def extract_text_from_document(file_path: str, ext: str) -> str:
+    """Extrai texto puro de arquivos DOCX, TXT, MD, etc."""
+    if ext == ".docx":
+        import zipfile
+        import xml.etree.ElementTree as ET
+        try:
+            with zipfile.ZipFile(file_path) as docx:
+                xml_content = docx.read('word/document.xml')
+                tree = ET.fromstring(xml_content)
+                namespaces = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+                paragraphs = []
+                for p in tree.iterfind('.//w:p', namespaces):
+                    texts = [node.text for node in p.iterfind('.//w:t', namespaces) if node.text]
+                    if texts:
+                        paragraphs.append(''.join(texts))
+                return '\n\n'.join(paragraphs)
+        except Exception as e:
+            print(f"Erro ao extrair docx: {e}")
+            return ""
+    elif ext in [".txt", ".md", ".csv", ".json", ".html", ".xml", ".log", ".rtf"]:
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                return f.read()
+        except UnicodeDecodeError:
+            with open(file_path, "r", encoding="latin-1", errors="ignore") as f:
+                return f.read()
+    return ""
+
 def analyze_and_extract_manual(file_path: str, filename: str, focus: str = None) -> Dict[str, Any]:
     """
-    Recebe um manual técnico ou documento (PDF, TXT, Imagem escaneada),
+    Recebe um manual técnico ou documento (PDF, Word DOCX, TXT, Imagem escaneada),
     envia para o Gemini multimodal, analisa o conteúdo técnico
     e sintetiza um procedimento operacional limpo, estruturado e analítico.
     """
@@ -221,21 +249,6 @@ def analyze_and_extract_manual(file_path: str, filename: str, focus: str = None)
     uploaded_file = None
     try:
         ext = os.path.splitext(filename)[1].lower() if filename else ".pdf"
-        mime_map = {
-            ".pdf": "application/pdf",
-            ".txt": "text/plain",
-            ".md": "text/markdown",
-            ".png": "image/png",
-            ".jpg": "image/jpeg",
-            ".jpeg": "image/jpeg",
-            ".webp": "image/webp"
-        }
-        mime = mime_map.get(ext)
-
-        if mime:
-            uploaded_file = client.files.upload(file=file_path, mime_type=mime)
-        else:
-            uploaded_file = client.files.upload(file=file_path)
 
         focus_instruction = f"\nO usuário solicitou dar ênfase especial ao seguinte tópico ou dúvida do manual: \"{focus}\"." if focus and focus.strip() else ""
 
@@ -260,11 +273,32 @@ Sua missão:
 }}
 """
 
-        response = _generate_with_fallback(
-            client,
-            contents=[uploaded_file, prompt],
-            config={"response_mime_type": "application/json"}
-        )
+        # 1. Se for Word (.docx) ou Texto (.txt, .md): extrai o texto diretamente para o Gemini
+        extracted_text = extract_text_from_document(file_path, ext)
+        if extracted_text and extracted_text.strip():
+            document_content = f"--- CONTEÚDO EXTRAÍDO DO DOCUMENTO ({filename}) ---\n{extracted_text}\n--- FIM DO DOCUMENTO ---"
+            response = _generate_with_fallback(
+                client,
+                contents=[document_content, prompt],
+                config={"response_mime_type": "application/json"}
+            )
+        else:
+            # 2. Se for PDF ou Imagem: upload via Gemini Files API com mime_type garantido
+            mime_map = {
+                ".pdf": "application/pdf",
+                ".png": "image/png",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".webp": "image/webp"
+            }
+            mime = mime_map.get(ext, "application/pdf")
+            uploaded_file = client.files.upload(file=file_path, mime_type=mime)
+
+            response = _generate_with_fallback(
+                client,
+                contents=[uploaded_file, prompt],
+                config={"response_mime_type": "application/json"}
+            )
 
         result = json.loads(response.text)
         return result
