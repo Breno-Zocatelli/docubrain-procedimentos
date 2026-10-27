@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base de Procedimentos Operacionais</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Marked.js para preview markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        .prose pre {
+            background-color: #1e293b;
+            color: #f8fafc;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+        }
+        .prose code {
+            background-color: rgba(148, 163, 184, 0.2);
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+        }
+        .prose pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        .prose blockquote {
+            border-left: 4px solid #3b82f6;
+            padding-left: 1rem;
+            font-style: italic;
+            color: #64748b;
+        }
+        .prose h1, .prose h2, .prose h3 {
+            font-weight: 700;
+            color: inherit;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .prose ul, .prose ol {
+            padding-left: 1.5rem;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .prose ul { list-style-type: disc; }
+        .prose ol { list-style-type: decimal; }
+        .prose li { margin-bottom: 0.25rem; }
+        .prose table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .prose th, .prose td {
+            border: 1px solid #cbd5e1;
+            padding: 0.5rem;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-sans">
+
+    <!-- Top Bar -->
+    <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md">
+                    <i data-lucide="book-open-check" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight flex items-center gap-2">
+                        DocuBrain
+                        <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                            Base de Procedimentos
+                        </span>
+                    </h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Guia Rápido de Equipamentos & Sistemas</p>
+                </div>
+            </div>
+
+            <!-- Navegação de Abas -->
+            <nav class="flex items-center space-x-1 sm:space-x-2">
+                <button onclick="switchTab('ask')" id="tab-btn-ask" class="tab-btn px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                    <span>Perguntar / Buscar</span>
+                </button>
+                <button onclick="switchTab('list')" id="tab-btn-list" class="tab-btn px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <i data-lucide="library" class="w-4 h-4"></i>
+                    <span>Procedimentos (<span id="total-badge">{{ stats.total }}</span>)</span>
+                </button>
+                <button onclick="openNewModal()" class="px-3.5 py-2 rounded-lg text-sm font-medium flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                    <span>Anotar Procedimento</span>
+                </button>
+                <button onclick="switchTab('settings')" id="tab-btn-settings" class="tab-btn p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" title="Configurações">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- ABA 1: PERGUNTAR / BUSCA INTELIGENTE -->
+        <section id="tab-ask" class="space-y-6">
+            <!-- Hero Search Box -->
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 sm:p-10 text-white shadow-lg relative overflow-hidden">
+                <div class="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
+                    <i data-lucide="cpu" class="w-80 h-80"></i>
+                </div>
+                <div class="max-w-3xl relative z-10">
+                    <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                        Qual procedimento você precisa lembrar agora?
+                    </h2>
+                    <p class="mt-2 text-blue-100 text-sm sm:text-base">
+                        Pergunte sobre códigos de erro, comandos de reset, rotinas de ERP, configurações ou etapas operacionais.
+                    </p>
+
+                    <form onsubmit="handleAsk(event)" class="mt-6 flex flex-col sm:flex-row gap-2">
+                        <div class="relative flex-1">
+                            <i data-lucide="search" class="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="ask-input" 
+                                placeholder="Ex: Como resetar o erro SC542 da Ricoh? / Como lançar requisição de toner no DataBit?"
+                                class="w-full pl-12 pr-4 py-3.5 rounded-xl text-slate-900 bg-white shadow-md focus:outline-none focus:ring-4 focus:ring-blue-300 text-sm sm:text-base font-medium"
+                                autofocus required />
+                        </div>
+                        <button type="submit" id="btn-submit-ask" class="px-6 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl flex items-center justify-center gap-2 shadow-md transition">
+                            <span>Consultar</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+
+                    <!-- Exemplos Rápidos -->
+                    <div class="mt-4 flex flex-wrap items-center gap-2 text-xs">
+                        <span class="text-blue-200">Exemplos rápidos:</span>
+                        <button onclick="quickAsk('Como resetar erro de fusor sc542 na Ricoh?')" class="bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-full transition">
+                            Reset Ricoh SC542
+                        </button>
+                        <button onclick="quickAsk('Como emitir requisicao de toner no DataBit?')" class="bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-full transition">
+                            Requisição DataBit Op 02
+                        </button>
+                        <button onclick="quickAsk('Como lancar atestado ou abono no TopPonto?')" class="bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-full transition">
+                            Atestado TopPonto
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Painel de Resultados da Pergunta -->
+            <div id="ask-results-container" class="hidden space-y-6">
+                <!-- Card de Resposta Inteligente -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700">
+                        <div class="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-semibold text-sm">
+                            <i data-lucide="bot" class="w-5 h-5"></i>
+                            <span id="ai-response-badge">Resposta Assistente</span>
+                        </div>
+                        <button onclick="copyAnswerText()" class="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1">
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                            <span>Copiar</span>
+                        </button>
+                    </div>
+                    <div id="ai-answer-content" class="mt-4 prose dark:prose-invert max-w-none text-sm sm:text-base leading-relaxed">
+                        <!-- Conteúdo injetado via JS -->
+                    </div>
+                </div>
+
+                <!-- Fontes e Procedimentos Vinculados -->
+                <div class="space-y-3">
+                    <h3 class="text-xs font-semibold tracking-wider uppercase text-slate-500 flex items-center gap-2">
+                        <i data-lucide="paperclip" class="w-4 h-4"></i>
+                        Procedimentos Vinculados como Fonte
+                    </h3>
+                    <div id="ask-sources-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Injetado via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seção de Procedimentos Recentes na Aba Principal -->
+            <div id="recent-section" class="pt-4">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-base font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                        <i data-lucide="clock" class="w-4 h-4 text-blue-600"></i>
+                        Últimos Procedimentos Atualizados
+                    </h3>
+                    <button onclick="switchTab('list')" class="text-xs font-medium text-blue-600 hover:underline">
+                        Ver todos &rarr;
+                    </button>
+                </div>
+                <div id="recent-cards-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Cards carregados via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 2: LISTA DE PROCEDIMENTOS / CATÁLOGO -->
+        <section id="tab-list" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-bold">Catálogo de Procedimentos</h2>
+                    <p class="text-sm text-slate-500">Consulte, filtre ou gerencie todas as etapas documentadas</p>
+                </div>
+
+                <!-- Barra de Filtros -->
+                <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                    <div class="relative flex-1 sm:w-64">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="filter-search" oninput="debounceFilter()" 
+                            placeholder="Filtrar por palavra..." 
+                            class="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <select id="filter-category" onchange="loadCatalog()" class="py-2 px-3 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
+                        <option value="">Todas Categorias</option>
+                    </select>
+                    <select id="filter-equipment" onchange="loadCatalog()" class="py-2 px-3 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
+                        <option value="">Todos Equipamentos/Sistemas</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Grade de Procedimentos -->
+            <div id="catalog-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Cards injetados via JS -->
+            </div>
+        </section>
+
+        <!-- ABA 3: CONFIGURAÇÕES -->
+        <section id="tab-settings" class="hidden space-y-6 max-w-2xl mx-auto">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-700 shadow-sm space-y-6">
+                <div>
+                    <h2 class="text-xl font-bold flex items-center gap-2">
+                        <i data-lucide="settings" class="w-5 h-5 text-blue-600"></i>
+                        Configurações do DocuBrain
+                    </h2>
+                    <p class="text-sm text-slate-500">Ajuste os parâmetros de inteligência artificial e visualização.</p>
+                </div>
+
+                <!-- Configuração de IA Gemini -->
+                <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 space-y-4">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h3 class="font-semibold text-sm flex items-center gap-2">
+                                <i data-lucide="sparkles" class="w-4 h-4 text-amber-500"></i>
+                                Chave de API do Google Gemini (Opcional)
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-1">
+                                Permite que o assistente converse, resuma e sintetize respostas naturais em cima dos seus procedimentos.
+                            </p>
+                        </div>
+                        <span id="gemini-status-tag" class="text-xs px-2.5 py-1 rounded-full font-medium bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+                            Verificando...
+                        </span>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-slate-600 dark:text-slate-400">Chave API (Google AI Studio)</label>
+                        <input type="password" id="settings-gemini-key" placeholder="AIzaSy..." 
+                            class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-mono" />
+                        <p class="text-xs text-slate-400">
+                            A chave é armazenada de forma 100% local no seu SQLite (`knowledge.db`).
+                            Você pode gerar uma chave gratuita em <a href="https://aistudio.google.com/apikey" target="_blank" class="text-blue-500 underline">aistudio.google.com</a>.
+                        </p>
+                    </div>
+
+                    <button onclick="saveSettings()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition">
+                        Salvar Configurações
+                    </button>
+                </div>
+
+                <!-- Diretório Local e Armazenamento Seguro -->
+                <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 space-y-2 text-xs">
+                    <h4 class="font-semibold text-sm flex items-center gap-2">
+                        <i data-lucide="folder-check" class="w-4 h-4 text-emerald-500"></i>
+                        Local de Armazenamento Seguro
+                    </h4>
+                    <p class="text-slate-500">
+                        Todas as anotações são salvas simultaneamente no banco SQLite e como arquivos <code>.md</code> legíveis em:
+                    </p>
+                    <code class="block bg-slate-200 dark:bg-slate-800 p-2 rounded text-slate-800 dark:text-slate-200 select-all">
+                        C:\Users\sistema_03\.gemini\antigravity\scratch\base-conhecimento\data\procedimentos\
+                    </code>
+                    <p class="text-slate-400">
+                        ✓ Este caminho está na lista de exclusão do antivírus e seus arquivos estão seguros.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL DE LEITURA COMPLETA DO PROCEDIMENTO -->
+    <div id="modal-view" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-start justify-between bg-slate-50 dark:bg-slate-850">
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                        <span id="view-category" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"></span>
+                        <span id="view-equipment" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-300"></span>
+                    </div>
+                    <h3 id="view-title" class="text-xl font-bold text-slate-900 dark:text-white"></h3>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="editCurrentProcedure()" class="p-2 text-slate-500 hover:text-blue-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700" title="Editar">
+                        <i data-lucide="edit-3" class="w-5 h-5"></i>
+                    </button>
+                    <button onclick="closeModal('modal-view')" class="p-2 text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700" title="Fechar">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 overflow-y-auto flex-1 space-y-6">
+                <!-- Resumo -->
+                <div id="view-summary-box" class="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/40 border-l-4 border-blue-500 text-sm text-slate-700 dark:text-slate-300">
+                    <p class="font-semibold text-blue-900 dark:text-blue-200 mb-1">Objetivo / Resumo:</p>
+                    <p id="view-summary"></p>
+                </div>
+
+                <!-- Conteúdo Renderizado -->
+                <div id="view-content" class="prose dark:prose-invert max-w-none text-sm sm:text-base">
+                    <!-- HTML markdown -->
+                </div>
+
+                <!-- Tags e Metadados -->
+                <div class="pt-4 border-t border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <i data-lucide="tag" class="w-3.5 h-3.5"></i>
+                        <span id="view-tags"></span>
+                    </div>
+                    <div>
+                        <span>Atualizado em: <strong id="view-updated-at"></strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 flex justify-end">
+                <button onclick="closeModal('modal-view')" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg text-sm font-medium">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE NOVO / EDITAR PROCEDIMENTO -->
+    <div id="modal-form" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                <h3 id="form-modal-title" class="text-lg font-bold">Novo Procedimento Operacional</h3>
+                <button onclick="closeModal('modal-form')" class="p-2 text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Modal Form Body -->
+            <form id="procedure-form" onsubmit="handleSaveProcedure(event)" class="p-6 overflow-y-auto flex-1 space-y-4 text-sm">
+                <input type="hidden" id="form-id" value="" />
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="font-semibold text-xs">Título do Procedimento *</label>
+                        <input type="text" id="form-title" required placeholder="Ex: Reset de Fusor e Limpeza de Erro SC542" 
+                            class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500" />
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="font-semibold text-xs">Equipamento ou Sistema *</label>
+                        <input type="text" id="form-equipment" required placeholder="Ex: Ricoh MP 301 / DataBit / TopPonto" 
+                            class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="font-semibold text-xs">Categoria *</label>
+                        <input type="text" id="form-category" required placeholder="Ex: Impressoras / ERP / RH / Redes" 
+                            class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500" />
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="font-semibold text-xs">Palavras-chave / Tags (separadas por vírgula)</label>
+                        <input type="text" id="form-tags" placeholder="Ex: fusor, sc542, reset, temperatura" 
+                            class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="font-semibold text-xs">Resumo Breve do Objetivo</label>
+                    <input type="text" id="form-summary" placeholder="Para que serve essa etapa e quando deve ser executada" 
+                        class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500" />
+                </div>
+
+                <div class="space-y-1">
+                    <div class="flex items-center justify-between">
+                        <label class="font-semibold text-xs">Passo a Passo / Conteúdo Detalhado (Markdown) *</label>
+                        <div class="space-x-1">
+                            <button type="button" onclick="insertTemplate()" class="text-xs text-blue-600 hover:underline">Inserir Modelo Padrão</button>
+                        </div>
+                    </div>
+                    <textarea id="form-content" required rows="9" 
+                        placeholder="Escreva as etapas, comandos, menus, códigos de erro e cuidados..."
+                        class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs sm:text-sm focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+
+                <!-- Footer do Form -->
+                <div class="pt-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                    <button type="button" id="btn-delete-proc" onclick="handleDeleteProcedure()" class="hidden px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium">
+                        Excluir
+                    </button>
+                    <div class="flex items-center gap-2 ml-auto">
+                        <button type="button" onclick="closeModal('modal-form')" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg text-sm font-medium">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-sm">
+                            Salvar Procedimento
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script da Aplicação -->
+    <script>
+        let currentEditingId = null;
+        let lastAskResult = null;
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            loadStats();
+            loadRecentCards();
+            checkSettings();
+        });
+
+        // Alternância de Abas
+        function switchTab(tabName) {
+            ['ask', 'list', 'settings'].forEach(tab => {
+                const el = document.getElementById(`tab-${tab}`);
+                const btn = document.getElementById(`tab-btn-${tab}`);
+                if (tab === tabName) {
+                    el.classList.remove('hidden');
+                    if (btn) {
+                        btn.classList.add('bg-blue-50', 'text-blue-600', 'dark:bg-blue-900/40', 'dark:text-blue-300');
+                        btn.classList.remove('text-slate-600', 'dark:text-slate-300');
+                    }
+                } else {
+                    el.classList.add('hidden');
+                    if (btn) {
+                        btn.classList.remove('bg-blue-50', 'text-blue-600', 'dark:bg-blue-900/40', 'dark:text-blue-300');
+                        btn.classList.add('text-slate-600', 'dark:text-slate-300');
+                    }
+                }
+            });
+
+            if (tabName === 'list') {
+                loadCatalog();
+            }
+            lucide.createIcons();
+        }
+
+        // Consultar / Perguntar ao Assistente
+        async function handleAsk(e) {
+            e.preventDefault();
+            const question = document.getElementById('ask-input').value.trim();
+            if (!question) return;
+
+            const submitBtn = document.getElementById('btn-submit-ask');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<span class="animate-spin inline-block mr-1">⏳</span> Buscando...`;
+
+            try {
+                const res = await fetch('/api/ask', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ question })
+                });
+                const data = await res.json();
+                lastAskResult = data;
+
+                renderAskResult(data);
+            } catch (err) {
+                alert('Erro ao consultar a base: ' + err.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                lucide.createIcons();
+            }
+        }
+
+        function quickAsk(text) {
+            document.getElementById('ask-input').value = text;
+            handleAsk(new Event('submit'));
+        }
+
+        function renderAskResult(data) {
+            const container = document.getElementById('ask-results-container');
+            const contentDiv = document.getElementById('ai-answer-content');
+            const sourcesDiv = document.getElementById('ask-sources-list');
+            const badge = document.getElementById('ai-response-badge');
+
+            container.classList.remove('hidden');
+            contentDiv.innerHTML = data.html_answer || marked.parse(data.answer);
+
+            if (data.mode === 'ai') {
+                badge.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4 text-amber-500 inline mr-1"></i> Síntese com IA (Gemini)`;
+            } else {
+                badge.innerHTML = `<i data-lucide="search-check" class="w-4 h-4 text-emerald-500 inline mr-1"></i> Correspondência Semântica Local`;
+            }
+
+            // Fontes
+            sourcesDiv.innerHTML = '';
+            if (data.sources && data.sources.length > 0) {
+                data.sources.forEach(src => {
+                    const card = document.createElement('div');
+                    card.className = "bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-400 cursor-pointer transition shadow-sm";
+                    card.onclick = () => viewProcedure(src.id);
+                    card.innerHTML = `
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">${src.category}</span>
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300">${src.equipment}</span>
+                        </div>
+                        <h4 class="font-bold text-sm text-slate-900 dark:text-white line-clamp-2">${src.title}</h4>
+                        <p class="text-xs text-slate-500 mt-1 line-clamp-2">${src.summary || 'Clique para abrir o procedimento completo'}</p>
+                        <div class="mt-3 text-xs font-semibold text-blue-600 flex items-center gap-1">
+                            <span>Abrir roteiro completo</span>
+                            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                        </div>
+                    `;
+                    sourcesDiv.appendChild(card);
+                });
+            } else {
+                sourcesDiv.innerHTML = `<p class="text-xs text-slate-500 italic">Nenhum documento específico vinculado.</p>`;
+            }
+
+            container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            lucide.createIcons();
+        }
+
+        function copyAnswerText() {
+            if (lastAskResult && lastAskResult.answer) {
+                navigator.clipboard.writeText(lastAskResult.answer);
+                alert('Resposta copiada para a área de transferência!');
+            }
+        }
+
+        // Carregar Recentes
+        async function loadRecentCards() {
+            try {
+                const res = await fetch('/api/procedures');
+                const procs = await res.json();
+                const grid = document.getElementById('recent-cards-grid');
+                grid.innerHTML = '';
+
+                procs.slice(0, 3).forEach(p => {
+                    const card = createProcedureCard(p);
+                    grid.appendChild(card);
+                });
+                lucide.createIcons();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Catálogo Completo
+        let filterTimeout = null;
+        function debounceFilter() {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(loadCatalog, 300);
+        }
+
+        async function loadCatalog() {
+            const q = document.getElementById('filter-search').value.trim();
+            const cat = document.getElementById('filter-category').value;
+            const eq = document.getElementById('filter-equipment').value;
+
+            let url = `/api/procedures?`;
+            if (q) url += `q=${encodeURIComponent(q)}&`;
+            if (cat) url += `category=${encodeURIComponent(cat)}&`;
+            if (eq) url += `equipment=${encodeURIComponent(eq)}&`;
+
+            try {
+                const res = await fetch(url);
+                const list = await res.json();
+                const grid = document.getElementById('catalog-grid');
+                grid.innerHTML = '';
+
+                if (list.length === 0) {
+                    grid.innerHTML = `
+                        <div class="col-span-full text-center py-12 text-slate-500">
+                            <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-3 opacity-30"></i>
+                            <p class="font-medium">Nenhum procedimento encontrado com esses filtros.</p>
+                        </div>
+                    `;
+                } else {
+                    list.forEach(p => {
+                        const card = createProcedureCard(p);
+                        grid.appendChild(card);
+                    });
+                }
+                lucide.createIcons();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function createProcedureCard(p) {
+            const card = document.createElement('div');
+            card.className = "bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 hover:shadow-md transition flex flex-col justify-between";
+            
+            const snippetText = p.snippet || p.summary || 'Sem resumo cadastrado';
+
+            card.innerHTML = `
+                <div>
+                    <div class="flex items-center gap-2 mb-2 flex-wrap">
+                        <span class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">${p.category}</span>
+                        <span class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300">${p.equipment}</span>
+                    </div>
+                    <h3 class="font-bold text-base text-slate-900 dark:text-white hover:text-blue-600 cursor-pointer" onclick="viewProcedure(${p.id})">
+                        ${p.title}
+                    </h3>
+                    <div class="text-xs text-slate-500 dark:text-slate-400 mt-2 line-clamp-3">
+                        ${snippetText}
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-xs">
+                    <span class="text-slate-400">${p.updated_at.split(' ')[0]}</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="editProcedure(${p.id})" class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600" title="Editar">
+                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="viewProcedure(${p.id})" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded font-medium text-slate-700 dark:text-slate-200">
+                            Abrir
+                        </button>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+        // Visualizar Procedimento
+        async function viewProcedure(id) {
+            try {
+                const res = await fetch(`/api/procedures/${id}`);
+                if (!res.ok) throw new Error('Não encontrado');
+                const proc = await res.json();
+                currentEditingId = proc.id;
+
+                document.getElementById('view-title').textContent = proc.title;
+                document.getElementById('view-category').textContent = proc.category;
+                document.getElementById('view-equipment').textContent = proc.equipment;
+                document.getElementById('view-tags').textContent = proc.tags || 'Sem tags';
+                document.getElementById('view-updated-at').textContent = proc.updated_at;
+
+                if (proc.summary) {
+                    document.getElementById('view-summary').textContent = proc.summary;
+                    document.getElementById('view-summary-box').classList.remove('hidden');
+                } else {
+                    document.getElementById('view-summary-box').classList.add('hidden');
+                }
+
+                document.getElementById('view-content').innerHTML = proc.html_content;
+
+                openModal('modal-view');
+                lucide.createIcons();
+            } catch (err) {
+                alert('Erro ao carregar procedimento: ' + err.message);
+            }
+        }
+
+        function editCurrentProcedure() {
+            closeModal('modal-view');
+            if (currentEditingId) {
+                editProcedure(currentEditingId);
+            }
+        }
+
+        // Criar / Editar Procedimento Form
+        function openNewModal() {
+            currentEditingId = null;
+            document.getElementById('form-modal-title').textContent = "Novo Procedimento Operacional";
+            document.getElementById('procedure-form').reset();
+            document.getElementById('form-id').value = "";
+            document.getElementById('btn-delete-proc').classList.add('hidden');
+            openModal('modal-form');
+        }
+
+        async function editProcedure(id) {
+            try {
+                const res = await fetch(`/api/procedures/${id}`);
+                const proc = await res.json();
+                currentEditingId = proc.id;
+
+                document.getElementById('form-modal-title').textContent = "Editar Procedimento";
+                document.getElementById('form-id').value = proc.id;
+                document.getElementById('form-title').value = proc.title;
+                document.getElementById('form-equipment').value = proc.equipment;
+                document.getElementById('form-category').value = proc.category;
+                document.getElementById('form-tags').value = proc.tags || '';
+                document.getElementById('form-summary').value = proc.summary || '';
+                document.getElementById('form-content').value = proc.content;
+
+                document.getElementById('btn-delete-proc').classList.remove('hidden');
+                openModal('modal-form');
+            } catch (err) {
+                alert('Erro ao carregar para edição: ' + err.message);
+            }
+        }
+
+        async function handleSaveProcedure(e) {
+            e.preventDefault();
+            const id = document.getElementById('form-id').value;
+            const payload = {
+                title: document.getElementById('form-title').value,
+                equipment: document.getElementById('form-equipment').value,
+                category: document.getElementById('form-category').value,
+                tags: document.getElementById('form-tags').value,
+                summary: document.getElementById('form-summary').value,
+                content: document.getElementById('form-content').value,
+            };
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `/api/procedures/${id}` : '/api/procedures';
+
+            try {
+                const res = await fetch(url, {
+                    method,
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) throw new Error('Falha ao salvar');
+
+                closeModal('modal-form');
+                loadStats();
+                loadRecentCards();
+                loadCatalog();
+                alert('Procedimento gravado com sucesso!');
+            } catch (err) {
+                alert('Erro: ' + err.message);
+            }
+        }
+
+        async function handleDeleteProcedure() {
+            const id = document.getElementById('form-id').value;
+            if (!id) return;
+            if (!confirm('Tem certeza que deseja excluir permanentemente este procedimento?')) return;
+
+            try {
+                const res = await fetch(`/api/procedures/${id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Falha ao excluir');
+
+                closeModal('modal-form');
+                loadStats();
+                loadRecentCards();
+                loadCatalog();
+                alert('Procedimento excluído com sucesso.');
+            } catch (err) {
+                alert('Erro: ' + err.message);
+            }
+        }
+
+        function insertTemplate() {
+            const tpl = `### Objetivo
+Descreva sucintamente a finalidade deste procedimento.
+
+### Pré-requisitos & Ferramentas
+- Item 1...
+- Item 2...
+
+### Passo a Passo
+1. Primeiro acesse...
+2. Digite ou execute o comando...
+3. Verifique a mensagem no painel...
+
+### Observações & Solução de Problemas
+- Caso ocorra o comportamento X: faça Y.
+`;
+            const ta = document.getElementById('form-content');
+            if (!ta.value.trim() || confirm('Substituir o conteúdo atual pelo modelo padrão?')) {
+                ta.value = tpl;
+            }
+        }
+
+        // Estatísticas e Filtros
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const stats = await res.json();
+                document.getElementById('total-badge').textContent = stats.total;
+
+                const catSelect = document.getElementById('filter-category');
+                catSelect.innerHTML = '<option value="">Todas Categorias</option>';
+                stats.categories.forEach(c => {
+                    catSelect.innerHTML += `<option value="${c}">${c}</option>`;
+                });
+
+                const eqSelect = document.getElementById('filter-equipment');
+                eqSelect.innerHTML = '<option value="">Todos Equipamentos/Sistemas</option>';
+                stats.equipments.forEach(e => {
+                    eqSelect.innerHTML += `<option value="${e}">${e}</option>`;
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Configurações
+        async function checkSettings() {
+            try {
+                const res = await fetch('/api/settings');
+                const data = await res.json();
+                const tag = document.getElementById('gemini-status-tag');
+                if (data.has_key) {
+                    tag.className = "text-xs px-2.5 py-1 rounded-full font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200";
+                    tag.textContent = "Ativa (" + data.masked_key + ")";
+                } else {
+                    tag.className = "text-xs px-2.5 py-1 rounded-full font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200";
+                    tag.textContent = "Não configurada (Modo Local Ativo)";
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function saveSettings() {
+            const key = document.getElementById('settings-gemini-key').value.trim();
+            try {
+                const res = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ gemini_api_key: key })
+                });
+                if (!res.ok) throw new Error('Erro ao salvar');
+                alert('Configurações salvas!');
+                document.getElementById('settings-gemini-key').value = '';
+                checkSettings();
+            } catch (err) {
+                alert('Erro: ' + err.message);
+            }
+        }
+
+        // Funções Modais
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
