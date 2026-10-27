@@ -77,6 +77,21 @@
             border: 1px solid #cbd5e1;
             padding: 0.5rem;
         }
+        .prose img {
+            max-width: 100%;
+            max-height: 520px;
+            object-fit: contain;
+            border-radius: 0.75rem;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin: 1rem auto;
+            display: block;
+            cursor: zoom-in;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .prose img:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15);
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-sans">
@@ -417,15 +432,31 @@
                 </div>
 
                 <div class="space-y-1">
-                    <div class="flex items-center justify-between">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
                         <label class="font-semibold text-xs">Passo a Passo / Conteúdo Detalhado (Markdown) *</label>
-                        <div class="space-x-1">
+                        <div class="flex items-center gap-3">
+                            <input type="file" id="image-file-input" accept="image/*" class="hidden" onchange="handleImageFileSelected(event)" />
+                            <button type="button" onclick="document.getElementById('image-file-input').click()" class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-medium flex items-center gap-1">
+                                <i data-lucide="image-plus" class="w-3.5 h-3.5"></i>
+                                <span>Inserir Imagem</span>
+                            </button>
+                            <span class="text-slate-300">|</span>
                             <button type="button" onclick="insertTemplate()" class="text-xs text-blue-600 hover:underline">Inserir Modelo Padrão</button>
                         </div>
                     </div>
-                    <textarea id="form-content" required rows="9" 
-                        placeholder="Escreva as etapas, comandos, menus, códigos de erro e cuidados..."
-                        class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs sm:text-sm focus:ring-2 focus:ring-blue-500"></textarea>
+                    <div class="relative">
+                        <textarea id="form-content" required rows="10" 
+                            placeholder="Escreva as etapas, comandos, menus, códigos de erro e cuidados... (Dica: Você pode colar prints com Ctrl+V diretamente aqui!)"
+                            class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs sm:text-sm focus:ring-2 focus:ring-blue-500"></textarea>
+                        <div id="upload-status-indicator" class="hidden absolute bottom-3 right-3 bg-slate-900/80 text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-2 backdrop-blur-sm shadow">
+                            <span class="animate-spin inline-block">⏳</span>
+                            <span id="upload-status-text">Enviando imagem...</span>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-slate-400 flex items-center gap-1">
+                        <i data-lucide="info" class="w-3 h-3"></i>
+                        <span>Pressione <strong>Ctrl + V</strong> para colar prints direto no texto ou use o botão <strong>Inserir Imagem</strong>.</span>
+                    </p>
                 </div>
 
                 <!-- Footer do Form -->
@@ -457,7 +488,84 @@
             loadStats();
             loadRecentCards();
             checkSettings();
+            setupImagePasteAndDrop();
         });
+
+        // Suporte a Upload, Colar Print (Ctrl+V) e Drag & Drop de Imagens
+        function setupImagePasteAndDrop() {
+            const textarea = document.getElementById('form-content');
+            if (!textarea) return;
+
+            // Suporte a colar print (Ctrl+V)
+            textarea.addEventListener('paste', async (e) => {
+                const items = (e.clipboardData || (e.originalEvent && e.originalEvent.clipboardData))?.items;
+                if (!items) return;
+                for (const item of items) {
+                    if (item.type && item.type.indexOf('image') !== -1) {
+                        e.preventDefault();
+                        const file = item.getAsFile();
+                        if (file) await uploadAndInsertImage(file);
+                        break;
+                    }
+                }
+            });
+
+            // Suporte a arrastar e soltar (Drag and Drop)
+            textarea.addEventListener('dragover', (e) => e.preventDefault());
+            textarea.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    const file = e.dataTransfer.files[0];
+                    if (file.type && file.type.startsWith('image/')) {
+                        await uploadAndInsertImage(file);
+                    }
+                }
+            });
+        }
+
+        async function handleImageFileSelected(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            await uploadAndInsertImage(file);
+            e.target.value = '';
+        }
+
+        async function uploadAndInsertImage(file) {
+            const indicator = document.getElementById('upload-status-indicator');
+            const statusText = document.getElementById('upload-status-text');
+            const textarea = document.getElementById('form-content');
+
+            if (indicator) indicator.classList.remove('hidden');
+            if (statusText) statusText.textContent = `Enviando imagem (${(file.size / 1024).toFixed(0)} KB)...`;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.detail || 'Falha no envio da imagem');
+                }
+                const data = await res.json();
+
+                const cursorPos = textarea.selectionStart || textarea.value.length;
+                const textBefore = textarea.value.substring(0, cursorPos);
+                const textAfter = textarea.value.substring(cursorPos);
+                const imageMarkdown = `\n\n![${file.name || 'Imagem do Procedimento'}](${data.url})\n\n`;
+
+                textarea.value = textBefore + imageMarkdown + textAfter;
+                textarea.selectionStart = textarea.selectionEnd = cursorPos + imageMarkdown.length;
+                textarea.focus();
+            } catch (err) {
+                alert('Erro ao enviar imagem: ' + err.message);
+            } finally {
+                if (indicator) indicator.classList.add('hidden');
+            }
+        }
 
         // Alternância de Abas
         function switchTab(tabName) {

@@ -1,6 +1,7 @@
 import os
 import markdown
-from fastapi import FastAPI, HTTPException, Request, Query
+import uuid
+from fastapi import FastAPI, HTTPException, Request, Query, UploadFile, File
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -21,6 +22,12 @@ app = FastAPI(title="Base de Procedimentos Operacionais - DocuBrain", version="1
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BASE_DIR)
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
+UPLOADS_DIR = os.path.join(PROJECT_ROOT, "data", "uploads")
+os.makedirs(UPLOADS_DIR, exist_ok=True)
+
+# Monta rota de uploads para servir as imagens
+app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
+
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 UPDATE_TOKEN = "mn_docubrain_auto_sync_token_2026"
@@ -125,6 +132,29 @@ def delete_procedure(proc_id: int):
     if not success:
         raise HTTPException(status_code=404, detail="Procedimento não encontrado")
     return {"message": "Procedimento excluído com sucesso!"}
+
+ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"}
+
+@app.post("/api/upload")
+async def upload_image(file: UploadFile = File(...)):
+    ext = os.path.splitext(file.filename)[1].lower() if file.filename else ".png"
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Formato não suportado. Use PNG, JPG, JPEG, WEBP ou GIF.")
+    
+    filename = f"img_{uuid.uuid4().hex[:12]}{ext}"
+    filepath = os.path.join(UPLOADS_DIR, filename)
+
+    contents = await file.read()
+    if len(contents) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="A imagem deve ter no máximo 20MB.")
+
+    with open(filepath, "wb") as f:
+        f.write(contents)
+
+    return {
+        "url": f"/uploads/{filename}",
+        "filename": filename
+    }
 
 @app.post("/api/ask")
 def ask_question(payload: AskRequest):
