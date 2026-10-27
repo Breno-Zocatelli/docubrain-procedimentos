@@ -1,8 +1,12 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="h-full">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#2563eb">
     <title>Base de Procedimentos Operacionais</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -31,6 +35,13 @@
     <!-- Marked.js para preview markdown -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
+        html {
+            -webkit-tap-highlight-color: transparent;
+            scroll-behavior: smooth;
+        }
+        body {
+            overflow-x: hidden;
+        }
         .prose pre {
             background-color: #1e293b;
             color: #f8fafc;
@@ -94,28 +105,28 @@
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-sans">
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-sans pb-24 md:pb-6">
 
     <!-- Top Bar -->
     <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md">
-                    <i data-lucide="book-open-check" class="w-6 h-6"></i>
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md flex-shrink-0">
+                    <i data-lucide="book-open-check" class="w-5 h-5 sm:w-6 sm:h-6"></i>
                 </div>
-                <div>
-                    <h1 class="font-bold text-lg leading-tight flex items-center gap-2">
-                        DocuBrain
-                        <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                <div class="min-w-0">
+                    <h1 class="font-bold text-base sm:text-lg leading-tight flex items-center gap-1.5 sm:gap-2 truncate">
+                        <span>DocuBrain</span>
+                        <span class="text-[10px] sm:text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                             Base de Procedimentos
                         </span>
                     </h1>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">Guia Rápido de Equipamentos & Sistemas</p>
+                    <p class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">Guia Rápido de Equipamentos & Sistemas</p>
                 </div>
             </div>
 
-            <!-- Navegação de Abas -->
-            <nav class="flex items-center space-x-1 sm:space-x-2">
+            <!-- Navegação de Abas Desktop (Oculta no Celular) -->
+            <nav class="hidden md:flex items-center space-x-1 sm:space-x-2">
                 <button onclick="switchTab('ask')" id="tab-btn-ask" class="tab-btn px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300">
                     <i data-lucide="sparkles" class="w-4 h-4"></i>
                     <span>Perguntar / Buscar</span>
@@ -132,11 +143,18 @@
                     <i data-lucide="settings" class="w-5 h-5"></i>
                 </button>
             </nav>
+
+            <!-- Botão de Ação Rápida Mobile no Topo -->
+            <div class="flex items-center md:hidden gap-1">
+                <button onclick="openNewModal()" class="p-2 bg-blue-600 active:bg-blue-700 text-white rounded-lg shadow-sm" title="Anotar">
+                    <i data-lucide="plus" class="w-5 h-5"></i>
+                </button>
+            </div>
         </div>
     </header>
 
     <!-- Conteúdo Principal -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
 
         <!-- ABA 1: PERGUNTAR / BUSCA INTELIGENTE -->
         <section id="tab-ask" class="space-y-6">
@@ -326,9 +344,28 @@
 
     </main>
 
+    <!-- BARRA DE NAVEGAÇÃO INFERIOR FIXA PARA CELULARES (MOBILE BOTTOM NAV) -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-4 py-2 flex items-center justify-around shadow-lg">
+        <button onclick="switchTab('ask')" id="mob-tab-btn-ask" class="mob-tab-btn flex flex-col items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 py-1 px-3 rounded-xl transition">
+            <i data-lucide="sparkles" class="w-5 h-5"></i>
+            <span>Buscar</span>
+        </button>
+        <button onclick="switchTab('list')" id="mob-tab-btn-list" class="mob-tab-btn flex flex-col items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400 py-1 px-3 rounded-xl transition">
+            <i data-lucide="library" class="w-5 h-5"></i>
+            <span>Catálogo</span>
+        </button>
+        <button onclick="openNewModal()" class="flex items-center justify-center -mt-6 bg-gradient-to-tr from-blue-600 to-indigo-600 active:from-blue-700 active:to-indigo-700 text-white w-14 h-14 rounded-full shadow-xl hover:scale-105 active:scale-95 transition" title="Anotar Procedimento">
+            <i data-lucide="plus" class="w-7 h-7"></i>
+        </button>
+        <button onclick="switchTab('settings')" id="mob-tab-btn-settings" class="mob-tab-btn flex flex-col items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400 py-1 px-3 rounded-xl transition">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+            <span>Config</span>
+        </button>
+    </nav>
+
     <!-- MODAL DE LEITURA COMPLETA DO PROCEDIMENTO -->
-    <div id="modal-view" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <div id="modal-view" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-0 sm:p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-none sm:rounded-2xl max-w-4xl w-full h-full sm:h-auto sm:max-h-[90vh] flex flex-col shadow-2xl border-0 sm:border border-slate-200 dark:border-slate-700 overflow-hidden">
             <!-- Modal Header -->
             <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-start justify-between bg-slate-50 dark:bg-slate-850">
                 <div class="space-y-1">
@@ -383,8 +420,8 @@
     </div>
 
     <!-- MODAL DE NOVO / EDITAR PROCEDIMENTO -->
-    <div id="modal-form" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <div id="modal-form" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-0 sm:p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-none sm:rounded-2xl max-w-3xl w-full h-full sm:h-auto sm:max-h-[92vh] flex flex-col shadow-2xl border-0 sm:border border-slate-200 dark:border-slate-700 overflow-hidden">
             <!-- Modal Header -->
             <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
                 <h3 id="form-modal-title" class="text-lg font-bold">Novo Procedimento Operacional</h3>
@@ -776,11 +813,16 @@
             ['ask', 'list', 'settings'].forEach(tab => {
                 const el = document.getElementById(`tab-${tab}`);
                 const btn = document.getElementById(`tab-btn-${tab}`);
+                const mobBtn = document.getElementById(`mob-tab-btn-${tab}`);
                 if (tab === tabName) {
                     el.classList.remove('hidden');
                     if (btn) {
                         btn.classList.add('bg-blue-50', 'text-blue-600', 'dark:bg-blue-900/40', 'dark:text-blue-300');
                         btn.classList.remove('text-slate-600', 'dark:text-slate-300');
+                    }
+                    if (mobBtn) {
+                        mobBtn.classList.add('text-blue-600', 'dark:text-blue-400', 'font-semibold');
+                        mobBtn.classList.remove('text-slate-500', 'dark:text-slate-400', 'font-medium');
                     }
                 } else {
                     el.classList.add('hidden');
@@ -788,12 +830,17 @@
                         btn.classList.remove('bg-blue-50', 'text-blue-600', 'dark:bg-blue-900/40', 'dark:text-blue-300');
                         btn.classList.add('text-slate-600', 'dark:text-slate-300');
                     }
+                    if (mobBtn) {
+                        mobBtn.classList.remove('text-blue-600', 'dark:text-blue-400', 'font-semibold');
+                        mobBtn.classList.add('text-slate-500', 'dark:text-slate-400', 'font-medium');
+                    }
                 }
             });
 
             if (tabName === 'list') {
                 loadCatalog();
             }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             lucide.createIcons();
         }
 
