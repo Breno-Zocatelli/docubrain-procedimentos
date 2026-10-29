@@ -48,7 +48,7 @@ def ask_ai(question: str) -> Dict[str, Any]:
 
     if not relevant_procs:
         return {
-            "answer": f"Não encontrei nenhum procedimento cadastrado com vínculo direto a: **\"{question}\"**.\n\n💡 *Dica: você pode cadastrar essa anotação na aba **\"Novo Procedimento\"** para tê-la sempre à mão quando precisar novamente!*",
+            "answer": f"Olá, sou a consciência do Breno. Consultei todo o meu intelecto técnico e não encontrei nenhum procedimento cadastrado com vínculo direto a: **\"{question}\"**.\n\n💡 *Dica: você pode cadastrar essa anotação na aba **\"Novo Procedimento\"** para enriquecer ainda mais a minha base intelectual!*",
             "sources": []
         }
 
@@ -81,22 +81,24 @@ def ask_ai(question: str) -> Dict[str, Any]:
             from google import genai
             client = genai.Client(api_key=api_key.strip())
 
-            prompt = f"""Você é o Assistente Especialista em Procedimentos Operacionais e Manutenção da empresa.
+            prompt = f"""Você é a Consciência Digital do Breno (Breno Zocatelli). Você é todo o intelecto técnico, a experiência operacional, a mente estratégica e o conhecimento profundo acumulado pelo Breno sobre equipamentos, rotinas e sistemas da empresa. Tudo o que o Breno sabe e estruturou está consolidado em você.
+
 O usuário fez a seguinte pergunta:
 "{question}"
 
-Abaixo estão os procedimentos registrados na base de conhecimento da empresa relacionados a essa dúvida:
+Abaixo está o acervo de procedimentos e dados técnicos que formam a sua base intelectual para responder:
 ----------------
 {"".join(full_contexts)}
 ----------------
 
-Instruções para a resposta:
-1. Responda diretamente à dúvida do usuário de forma clara, objetiva e prática.
-2. Forneça o passo a passo exato conforme documentado nos procedimentos acima.
-3. Se houver comandos específicos, códigos numéricos ou avisos de segurança/atenção, destaque-os com clareza.
-4. Se a resposta envolver mais de um procedimento ou equipamento diferente, separe claramente as seções de cada um (usando subtítulos ou tópicos bem definidos), destacando perfeitamente um procedimento do outro.
-5. Ao final, cite o título exato de cada procedimento de onde veio a informação.
-6. Se a dúvida não estiver 100% coberta pelos procedimentos fornecidos, responda o que for possível e alerte o usuário.
+Instruções para a sua resposta:
+1. Comece obrigatoriamente dizendo: "Olá, sou a consciência do Breno." e estruture toda a resposta deixando evidente que o seu intelecto e conhecimento estão sendo aplicados para guiar e solucionar a dúvida com clareza e autoridade técnica.
+2. Responda diretamente à dúvida do usuário de forma clara, objetiva, prática e resolutiva.
+3. Forneça o passo a passo exato conforme documentado na sua base de conhecimento.
+4. Se houver comandos específicos, códigos numéricos ou avisos de segurança/atenção, destaque-os com total clareza.
+5. Se a resposta envolver mais de um procedimento ou equipamento diferente, separe claramente as seções de cada um (usando subtítulos ou tópicos bem definidos), destacando perfeitamente um procedimento do outro.
+6. Ao final, cite o título exato de cada procedimento de onde vieram essas informações do seu acervo.
+7. Se a dúvida não estiver 100% coberta pelos procedimentos fornecidos, responda o que for possível com o seu intelecto técnico e alerte o usuário.
 """
             # Chamada usando modelo flash resiliente
             response = _generate_with_fallback(client, contents=prompt)
@@ -117,7 +119,7 @@ def _generate_local_synthesis(question: str, sources: List[Dict], contexts: List
     primary = sources[0]
     p_full = database.get_procedure(primary["id"])
 
-    msg = f"Encontrei **{len(sources)}** procedimento(s) vinculado(s) à sua pergunta:\n\n"
+    msg = f"Olá, sou a consciência do Breno. Consultei o meu intelecto técnico e encontrei **{len(sources)}** procedimento(s) diretamente vinculado(s) à sua dúvida:\n\n"
     msg += f"### 📌 Principal Correspondência: **{primary['title']}**\n"
     msg += f"- **Equipamento/Sistema:** `{primary['equipment']}`\n"
     msg += f"- **Categoria:** `{primary['category']}`\n\n"

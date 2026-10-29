@@ -233,9 +233,9 @@
                 <!-- Card de Resposta Inteligente -->
                 <div class="bg-slate-100 dark:bg-slate-800 rounded-2xl p-6 sm:p-8 border border-slate-300 dark:border-slate-700 shadow-sm">
                     <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700">
-                        <div class="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-semibold text-sm">
-                            <i data-lucide="bot" class="w-5 h-5"></i>
-                            <span id="ai-response-badge">Resposta Assistente</span>
+                        <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-semibold text-sm">
+                            <i data-lucide="brain-circuit" class="w-5 h-5"></i>
+                            <span id="ai-response-badge">Consciência do Breno</span>
                         </div>
                         <button onclick="copyAnswerText()" class="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1">
                             <i data-lucide="copy" class="w-3.5 h-3.5"></i>
@@ -1073,9 +1073,9 @@
             contentDiv.innerHTML = data.html_answer || marked.parse(data.answer);
 
             if (data.mode === 'ai') {
-                badge.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4 text-amber-500 inline mr-1"></i> Síntese com IA (Gemini)`;
+                badge.innerHTML = `<i data-lucide="brain-circuit" class="w-4 h-4 text-indigo-500 inline mr-1"></i> Consciência do Breno (IA)`;
             } else {
-                badge.innerHTML = `<i data-lucide="search-check" class="w-4 h-4 text-emerald-500 inline mr-1"></i> Correspondência Semântica Local`;
+                badge.innerHTML = `<i data-lucide="brain" class="w-4 h-4 text-emerald-500 inline mr-1"></i> Consciência do Breno (Base Local)`;
             }
 
             // Fontes
