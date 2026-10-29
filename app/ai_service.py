@@ -94,8 +94,9 @@ Instruções para a resposta:
 1. Responda diretamente à dúvida do usuário de forma clara, objetiva e prática.
 2. Forneça o passo a passo exato conforme documentado nos procedimentos acima.
 3. Se houver comandos específicos, códigos numéricos ou avisos de segurança/atenção, destaque-os com clareza.
-4. Ao final, cite o título exato do procedimento de onde veio a informação.
-5. Se a dúvida não estiver 100% coberta pelos procedimentos fornecidos, responda o que for possível e alerte o usuário.
+4. Se a resposta envolver mais de um procedimento ou equipamento diferente, separe claramente as seções de cada um (usando subtítulos ou tópicos bem definidos), destacando perfeitamente um procedimento do outro.
+5. Ao final, cite o título exato de cada procedimento de onde veio a informação.
+6. Se a dúvida não estiver 100% coberta pelos procedimentos fornecidos, responda o que for possível e alerte o usuário.
 """
             # Chamada usando modelo flash resiliente
             response = _generate_with_fallback(client, contents=prompt)
