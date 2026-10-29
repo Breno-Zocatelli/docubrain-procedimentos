@@ -76,6 +76,17 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
+class UserCreate(BaseModel):
+    username: str
+    display_name: str
+    password: str
+    role: str = "viewer"
+
+class UserUpdate(BaseModel):
+    display_name: Optional[str] = None
+    role: Optional[str] = None
+    password: Optional[str] = None
+
 # Dependências de Autenticação
 def get_current_user(request: Request) -> Optional[dict]:
     token = request.cookies.get("docubrain_session")
@@ -165,6 +176,60 @@ def logout_endpoint(response: Response, request: Request):
 @app.get("/api/auth/me")
 def me_endpoint(user: dict = Depends(require_user)):
     return user
+
+# Rotas de Gestão de Usuários (Painel do Administrador)
+@app.get("/api/users")
+def get_users_endpoint(user: dict = Depends(require_admin)):
+    conn = database.get_connection()
+    try:
+        return auth.list_users(conn)
+    finally:
+        conn.close()
+
+@app.post("/api/users")
+def create_user_endpoint(payload: UserCreate, user: dict = Depends(require_admin)):
+    conn = database.get_connection()
+    try:
+        new_id = auth.create_user(
+            conn,
+            username=payload.username,
+            display_name=payload.display_name,
+            password=payload.password,
+            role=payload.role
+        )
+        return {"status": "ok", "id": new_id, "message": "Usuário cadastrado com sucesso!"}
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    finally:
+        conn.close()
+
+@app.put("/api/users/{user_id}")
+def update_user_endpoint(user_id: int, payload: UserUpdate, user: dict = Depends(require_admin)):
+    conn = database.get_connection()
+    try:
+        auth.update_user(
+            conn,
+            user_id=user_id,
+            display_name=payload.display_name,
+            role=payload.role,
+            password=payload.password
+        )
+        return {"status": "ok", "message": "Usuário atualizado com sucesso!"}
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    finally:
+        conn.close()
+
+@app.delete("/api/users/{user_id}")
+def delete_user_endpoint(user_id: int, user: dict = Depends(require_admin)):
+    conn = database.get_connection()
+    try:
+        auth.delete_user(conn, user_id=user_id, current_user_id=user["id"])
+        return {"status": "ok", "message": "Usuário excluído com sucesso!"}
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    finally:
+        conn.close()
 
 # Rotas da API de Procedimentos
 @app.get("/api/procedures")

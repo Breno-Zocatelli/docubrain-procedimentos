@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import secrets
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import sqlite3
 
 def hash_password(password: str, salt: Optional[str] = None) -> tuple[str, str]:
@@ -146,4 +146,120 @@ def delete_session(conn: sqlite3.Connection, token: str):
         return
     cursor = conn.cursor()
     cursor.execute("DELETE FROM sessions WHERE token = ?", (token,))
+    conn.commit()
+
+# ==========================================
+# Gestão de Usuários (Painel Administrativo)
+# ==========================================
+
+def list_users(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
+    """Retorna todos os usuários cadastrados sem expor hash ou salt."""
+    cursor = conn.cursor()
+    cursor.execute("""
+    SELECT id, username, display_name, role, created_at
+    FROM users
+    ORDER BY id ASC
+    """)
+    rows = cursor.fetchall()
+    return [
+        {
+            "id": r["id"],
+            "username": r["username"],
+            "display_name": r["display_name"],
+            "role": r["role"],
+            "created_at": r["created_at"]
+        }
+        for r in rows
+    ]
+
+def create_user(conn: sqlite3.Connection, username: str, display_name: str, password: str, role: str = "viewer") -> int:
+    """Cria um novo usuário com senha criptografada e validação de duplicidade."""
+    username = username.strip().lower()
+    display_name = display_name.strip()
+    password = password.strip()
+    
+    if not username:
+        raise ValueError("O nome de usuário (login) é obrigatório.")
+    if len(username) < 3:
+        raise ValueError("O nome de usuário deve ter no mínimo 3 caracteres.")
+    if not display_name:
+        raise ValueError("O nome completo é obrigatório.")
+    if not password or len(password) < 4:
+        raise ValueError("A senha deve ter no mínimo 4 caracteres.")
+    if role not in ("admin", "viewer"):
+        role = "viewer"
+    
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
+    if cursor.fetchone():
+        raise ValueError(f"O nome de usuário '{username}' já está em uso.")
+    
+    pw_hash, salt = hash_password(password)
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    cursor.execute("""
+    INSERT INTO users (username, display_name, password_hash, salt, role, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+    """, (username, display_name, pw_hash, salt, role, now))
+    conn.commit()
+    return cursor.lastrowid
+
+def update_user(conn: sqlite3.Connection, user_id: int, display_name: Optional[str] = None, role: Optional[str] = None, password: Optional[str] = None):
+    """Atualiza dados, permissão e/ou senha de um usuário."""
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, username, role FROM users WHERE id = ?", (user_id,))
+    row = cursor.fetchone()
+    if not row:
+        raise ValueError("Usuário não encontrado.")
+    
+    # Se estiver tentando rebaixar o role de um admin, verifica se não é o único
+    if role and role != "admin" and row["role"] == "admin":
+        cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'")
+        admin_count = cursor.fetchone()[0]
+        if admin_count <= 1:
+            raise ValueError("Não é possível alterar o perfil do único administrador do sistema.")
+    
+    updates = []
+    params = []
+    
+    if display_name and display_name.strip():
+        updates.append("display_name = ?")
+        params.append(display_name.strip())
+        
+    if role and role in ("admin", "viewer"):
+        updates.append("role = ?")
+        params.append(role)
+        
+    if password and password.strip():
+        if len(password.strip()) < 4:
+            raise ValueError("A nova senha deve ter no mínimo 4 caracteres.")
+        pw_hash, salt = hash_password(password.strip())
+        updates.append("password_hash = ?, salt = ?")
+        params.extend([pw_hash, salt])
+        
+    if updates:
+        sql = f"UPDATE users SET {', '.join(updates)} WHERE id = ?"
+        params.append(user_id)
+        cursor.execute(sql, tuple(params))
+        conn.commit()
+
+def delete_user(conn: sqlite3.Connection, user_id: int, current_user_id: int):
+    """Exclui um usuário e encerra suas sessões ativas."""
+    if user_id == current_user_id:
+        raise ValueError("Você não pode excluir sua própria conta enquanto estiver conectado.")
+    
+    cursor = conn.cursor()
+    cursor.execute("SELECT username, role FROM users WHERE id = ?", (user_id,))
+    row = cursor.fetchone()
+    if not row:
+        raise ValueError("Usuário não encontrado.")
+    
+    if row["role"] == "admin":
+        cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'")
+        admin_count = cursor.fetchone()[0]
+        if admin_count <= 1:
+            raise ValueError("Não é possível excluir o único administrador do sistema.")
+    
+    # Remove sessões do usuário excluído e o registro de usuário
+    cursor.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+    cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
     conn.commit()

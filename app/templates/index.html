@@ -146,6 +146,10 @@
                     <i data-lucide="plus-circle" class="w-4 h-4"></i>
                     <span>Anotar Procedimento</span>
                 </button>
+                <button onclick="switchTab('users')" id="tab-btn-users" class="tab-btn px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="Gestão de Usuários">
+                    <i data-lucide="users" class="w-4 h-4"></i>
+                    <span>Usuários</span>
+                </button>
                 <button onclick="switchTab('settings')" id="tab-btn-settings" class="tab-btn p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" title="Configurações">
                     <i data-lucide="settings" class="w-5 h-5"></i>
                 </button>
@@ -390,6 +394,98 @@
             </div>
         </section>
 
+        <!-- ABA 4: GESTÃO DE USUÁRIOS (ADMIN) -->
+        {% if user.role == 'admin' %}
+        <section id="tab-users" class="hidden space-y-6 max-w-5xl mx-auto">
+            <!-- Cabeçalho da Aba -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-xl sm:text-2xl font-bold flex items-center gap-2.5 text-slate-900 dark:text-white">
+                        <i data-lucide="users" class="w-6 h-6 text-blue-600"></i>
+                        <span>Gestão de Usuários</span>
+                    </h2>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                        Consulte os usuários com acesso à base e cadastre novos operadores com perfil Consulta ou Administrador.
+                    </p>
+                </div>
+                <button onclick="openNewUserModal()" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-sm hover:shadow transition flex items-center gap-2 flex-shrink-0">
+                    <i data-lucide="user-plus" class="w-4 h-4"></i>
+                    <span>Novo Usuário</span>
+                </button>
+            </div>
+
+            <!-- Cards Resumo / KPIs -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-slate-100 dark:bg-slate-800 p-5 rounded-2xl border border-slate-300 dark:border-slate-700 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-300 flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="users" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs font-semibold uppercase text-slate-500 tracking-wider">Total de Contas</span>
+                        <h3 id="users-kpi-total" class="text-2xl font-extrabold text-slate-900 dark:text-white">0</h3>
+                    </div>
+                </div>
+
+                <div class="bg-slate-100 dark:bg-slate-800 p-5 rounded-2xl border border-slate-300 dark:border-slate-700 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-300 flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="shield-check" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs font-semibold uppercase text-slate-500 tracking-wider">Administradores</span>
+                        <h3 id="users-kpi-admins" class="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">0</h3>
+                    </div>
+                </div>
+
+                <div class="bg-slate-100 dark:bg-slate-800 p-5 rounded-2xl border border-slate-300 dark:border-slate-700 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="eye" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs font-semibold uppercase text-slate-500 tracking-wider">Perfil Consulta</span>
+                        <h3 id="users-kpi-viewers" class="text-2xl font-extrabold text-amber-600 dark:text-amber-400">0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela / Lista de Usuários -->
+            <div class="bg-slate-100 dark:bg-slate-800 rounded-2xl p-5 sm:p-6 border border-slate-300 dark:border-slate-700 shadow-sm space-y-4">
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-700">
+                    <h3 class="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                        <i data-lucide="list" class="w-4 h-4 text-blue-600"></i>
+                        <span>Usuários Cadastrados</span>
+                    </h3>
+                    <div class="relative w-full sm:w-64">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="filter-users-input" oninput="filterUsersList()"
+                            placeholder="Buscar nome ou login..."
+                            class="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-750 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                </div>
+
+                <!-- Tabela Responsiva -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead>
+                            <tr class="text-xs uppercase text-slate-500 tracking-wider border-b border-slate-200 dark:border-slate-700">
+                                <th class="pb-3 pl-2">Usuário</th>
+                                <th class="pb-3">Login</th>
+                                <th class="pb-3">Perfil</th>
+                                <th class="pb-3">Cadastrado em</th>
+                                <th class="pb-3 pr-2 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body" class="divide-y divide-slate-200 dark:divide-slate-700">
+                            <!-- Injetado dinamicamente via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="users-empty-msg" class="hidden py-8 text-center text-slate-500 text-xs">
+                    Nenhum usuário encontrado.
+                </div>
+            </div>
+        </section>
+        {% endif %}
     </main>
 
     <!-- BARRA DE NAVEGAÇÃO INFERIOR FIXA PARA CELULARES (MOBILE BOTTOM NAV) -->
@@ -405,6 +501,10 @@
         {% if user.role == 'admin' %}
         <button onclick="openNewModal()" class="flex items-center justify-center -mt-6 bg-gradient-to-tr from-blue-600 to-indigo-600 active:from-blue-700 active:to-indigo-700 text-white w-14 h-14 rounded-full shadow-xl hover:scale-105 active:scale-95 transition" title="Anotar Procedimento">
             <i data-lucide="plus" class="w-7 h-7"></i>
+        </button>
+        <button onclick="switchTab('users')" id="mob-tab-btn-users" class="mob-tab-btn flex flex-col items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400 py-1 px-3 rounded-xl transition">
+            <i data-lucide="users" class="w-5 h-5"></i>
+            <span>Usuários</span>
         </button>
         <button onclick="switchTab('settings')" id="mob-tab-btn-settings" class="mob-tab-btn flex flex-col items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400 py-1 px-3 rounded-xl transition">
             <i data-lucide="settings" class="w-5 h-5"></i>
@@ -654,6 +754,77 @@
                             Salvar Procedimento
                         </button>
                     </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL DE CADASTRO / EDIÇÃO DE USUÁRIO -->
+    <div id="modal-user" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-3 sm:p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-850">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-300 flex items-center justify-center">
+                        <i data-lucide="user-cog" class="w-4 h-4"></i>
+                    </div>
+                    <h3 id="user-modal-title" class="text-base font-bold text-slate-900 dark:text-white">Novo Usuário</h3>
+                </div>
+                <button type="button" onclick="closeModal('modal-user')" class="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body / Form -->
+            <form id="user-form" onsubmit="handleSaveUser(event)" class="p-6 space-y-4">
+                <input type="hidden" id="user-form-id" value="">
+
+                <!-- Nome Completo -->
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Nome Completo</label>
+                    <input type="text" id="user-form-display-name" required placeholder="Ex: João da Silva"
+                        class="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500" />
+                </div>
+
+                <!-- Login / Username -->
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Nome de Usuário (Login)</label>
+                    <input type="text" id="user-form-username" required placeholder="Ex: joao.silva" autocomplete="off"
+                        class="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 lowercase font-mono" />
+                    <p class="text-[11px] text-slate-400">Usado para entrar no sistema (sem espaços e sem acentos).</p>
+                </div>
+
+                <!-- Perfil / Permissão -->
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Perfil de Acesso</label>
+                    <select id="user-form-role" class="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+                        <option value="viewer">Consulta (Apenas pesquisa IA e leitura de procedimentos)</option>
+                        <option value="admin">Administrador (Criar/editar procedimentos e gerenciar usuários)</option>
+                    </select>
+                </div>
+
+                <!-- Senha -->
+                <div class="space-y-1">
+                    <label id="user-form-password-label" class="text-xs font-semibold text-slate-700 dark:text-slate-300">Senha de Acesso</label>
+                    <div class="relative">
+                        <input type="password" id="user-form-password" placeholder="Digite uma senha forte..." autocomplete="new-password"
+                            class="w-full px-3.5 py-2 pr-10 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 font-mono" />
+                        <button type="button" onclick="togglePasswordVisibility('user-form-password')" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1">
+                            <i data-lucide="eye" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                    <p id="user-form-password-help" class="text-[11px] text-slate-400">Mínimo de 4 caracteres.</p>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-700">
+                    <button type="button" onclick="closeModal('modal-user')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 transition">
+                        Cancelar
+                    </button>
+                    <button type="submit" id="btn-save-user" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                        <span>Salvar Usuário</span>
+                    </button>
                 </div>
             </form>
         </div>
@@ -994,7 +1165,7 @@
 
         // Alternância de Abas
         function switchTab(tabName) {
-            ['ask', 'list', 'settings'].forEach(tab => {
+            ['ask', 'list', 'settings', 'users'].forEach(tab => {
                 const el = document.getElementById(`tab-${tab}`);
                 const btn = document.getElementById(`tab-btn-${tab}`);
                 const mobBtn = document.getElementById(`mob-tab-btn-${tab}`);
@@ -1023,6 +1194,8 @@
 
             if (tabName === 'list') {
                 loadCatalog();
+            } else if (tabName === 'users') {
+                loadUsers();
             }
             window.scrollTo({ top: 0, behavior: 'smooth' });
             lucide.createIcons();
@@ -1445,6 +1618,239 @@ Descreva sucintamente a finalidade deste procedimento.
         function closeModal(id) {
             document.getElementById(id).classList.add('hidden');
         }
+
+        // ==========================================
+        // Gestão de Usuários (Painel do Administrador)
+        // ==========================================
+        let allUsersList = [];
+
+        async function loadUsers() {
+            try {
+                const res = await fetch('/api/users');
+                if (!res.ok) throw new Error('Falha ao carregar usuários');
+                allUsersList = await res.json();
+                renderUsersTable(allUsersList);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function renderUsersTable(users) {
+            const tbody = document.getElementById('users-table-body');
+            const emptyMsg = document.getElementById('users-empty-msg');
+            if (!tbody) return;
+
+            // Atualiza KPIs
+            const total = users.length;
+            const admins = users.filter(u => u.role === 'admin').length;
+            const viewers = total - admins;
+
+            const elTotal = document.getElementById('users-kpi-total');
+            const elAdmins = document.getElementById('users-kpi-admins');
+            const elViewers = document.getElementById('users-kpi-viewers');
+            if (elTotal) elTotal.textContent = total;
+            if (elAdmins) elAdmins.textContent = admins;
+            if (elViewers) elViewers.textContent = viewers;
+
+            tbody.innerHTML = '';
+            if (users.length === 0) {
+                if (emptyMsg) emptyMsg.classList.remove('hidden');
+                return;
+            }
+            if (emptyMsg) emptyMsg.classList.add('hidden');
+
+            users.forEach(u => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-200/50 dark:hover:bg-slate-750 transition";
+
+                const isCurrentUser = CURRENT_USER && CURRENT_USER.id === u.id;
+                const isAdmin = u.role === 'admin';
+                const initial = (u.display_name || u.username || 'U').charAt(0).toUpperCase();
+
+                const roleBadge = isAdmin
+                    ? `<span class="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300">
+                         <i data-lucide="shield-check" class="w-3 h-3"></i> ADMIN
+                       </span>`
+                    : `<span class="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300">
+                         <i data-lucide="eye" class="w-3 h-3"></i> CONSULTA
+                       </span>`;
+
+                tr.innerHTML = `
+                    <td class="py-3.5 pl-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl ${isAdmin ? 'bg-gradient-to-tr from-indigo-500 to-blue-600' : 'bg-gradient-to-tr from-amber-500 to-orange-600'} text-white flex items-center justify-center font-bold text-sm shadow-sm flex-shrink-0">
+                                ${initial}
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 truncate">
+                                    <span>${u.display_name}</span>
+                                    ${isCurrentUser ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 font-bold">VOCÊ</span>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-3.5 font-mono text-xs text-slate-600 dark:text-slate-400">
+                        @${u.username}
+                    </td>
+                    <td class="py-3.5">
+                        ${roleBadge}
+                    </td>
+                    <td class="py-3.5 text-xs text-slate-500 dark:text-slate-400">
+                        ${(u.created_at || '').split('T')[0] || (u.created_at || '').split(' ')[0]}
+                    </td>
+                    <td class="py-3.5 pr-2 text-right">
+                        <div class="flex items-center justify-end gap-1.5">
+                            <button onclick='openEditUserModal(${JSON.stringify(u)})' class="p-1.5 hover:bg-white dark:hover:bg-slate-700 text-slate-600 hover:text-blue-600 rounded-lg border border-slate-200 dark:border-slate-700 transition" title="Editar Usuário / Trocar Senha">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                            </button>
+                            ${!isCurrentUser ? `
+                            <button onclick="handleDeleteUser(${u.id}, '${u.username}')" class="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40 text-slate-400 hover:text-red-600 rounded-lg border border-slate-200 dark:border-slate-700 transition" title="Excluir Usuário">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                            ` : `
+                            <span class="p-1.5 text-slate-300 dark:text-slate-600 cursor-not-allowed" title="Você não pode excluir sua própria conta">
+                                <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+                            </span>
+                            `}
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+        }
+
+        function filterUsersList() {
+            const query = (document.getElementById('filter-users-input').value || '').trim().toLowerCase();
+            if (!query) {
+                renderUsersTable(allUsersList);
+                return;
+            }
+            const filtered = allUsersList.filter(u => 
+                (u.username && u.username.toLowerCase().includes(query)) ||
+                (u.display_name && u.display_name.toLowerCase().includes(query))
+            );
+            renderUsersTable(filtered);
+        }
+
+        function openNewUserModal() {
+            document.getElementById('user-form-id').value = '';
+            document.getElementById('user-modal-title').textContent = 'Novo Usuário';
+            document.getElementById('user-form-display-name').value = '';
+            document.getElementById('user-form-username').value = '';
+            document.getElementById('user-form-username').disabled = false;
+            document.getElementById('user-form-role').value = 'viewer';
+            document.getElementById('user-form-password').value = '';
+            document.getElementById('user-form-password').required = true;
+            document.getElementById('user-form-password-label').textContent = 'Senha de Acesso';
+            document.getElementById('user-form-password-help').textContent = 'Mínimo de 4 caracteres.';
+            openModal('modal-user');
+            lucide.createIcons();
+        }
+
+        function openEditUserModal(user) {
+            document.getElementById('user-form-id').value = user.id;
+            document.getElementById('user-modal-title').textContent = `Editar: ${user.display_name}`;
+            document.getElementById('user-form-display-name').value = user.display_name;
+            document.getElementById('user-form-username').value = user.username;
+            document.getElementById('user-form-username').disabled = true;
+            document.getElementById('user-form-role').value = user.role;
+            document.getElementById('user-form-password').value = '';
+            document.getElementById('user-form-password').required = false;
+            document.getElementById('user-form-password-label').textContent = 'Redefinir Senha (Opcional)';
+            document.getElementById('user-form-password-help').textContent = 'Deixe em branco para manter a senha atual.';
+            openModal('modal-user');
+            lucide.createIcons();
+        }
+
+        async function handleSaveUser(e) {
+            e.preventDefault();
+            const id = document.getElementById('user-form-id').value;
+            const displayName = document.getElementById('user-form-display-name').value.trim();
+            const username = document.getElementById('user-form-username').value.trim();
+            const role = document.getElementById('user-form-role').value;
+            const password = document.getElementById('user-form-password').value;
+
+            const isNew = !id;
+
+            const payload = {
+                display_name: displayName,
+                role: role
+            };
+
+            if (isNew) {
+                payload.username = username;
+                payload.password = password;
+                if (!password || password.length < 4) {
+                    alert('A senha deve ter no mínimo 4 caracteres.');
+                    return;
+                }
+            } else {
+                if (password && password.trim()) {
+                    if (password.trim().length < 4) {
+                        alert('A nova senha deve ter no mínimo 4 caracteres.');
+                        return;
+                    }
+                    payload.password = password.trim();
+                }
+            }
+
+            const btn = document.getElementById('btn-save-user');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = 'Salvando...';
+
+            try {
+                const url = isNew ? '/api/users' : `/api/users/${id}`;
+                const method = isNew ? 'POST' : 'PUT';
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.detail || 'Falha ao salvar usuário');
+                }
+
+                closeModal('modal-user');
+                alert(data.message || (isNew ? 'Usuário criado com sucesso!' : 'Usuário atualizado com sucesso!'));
+                await loadUsers();
+            } catch (err) {
+                alert('Erro: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                lucide.createIcons();
+            }
+        }
+
+        async function handleDeleteUser(id, username) {
+            if (!confirm(`Tem certeza que deseja excluir o usuário "${username}"? Todas as sessões dele serão encerradas imediatamente.`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.detail || 'Falha ao excluir usuário');
+                }
+                alert(data.message || 'Usuário excluído com sucesso!');
+                await loadUsers();
+            } catch (err) {
+                alert('Erro: ' + err.message);
+            }
+        }
+
+        function togglePasswordVisibility(inputId) {
+            const input = document.getElementById(inputId);
+            if (input) {
+                input.type = input.type === 'password' ? 'text' : 'password';
+            }
+        }
+
     </script>
 </body>
 </html>
