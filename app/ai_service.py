@@ -48,7 +48,7 @@ def ask_ai(question: str) -> Dict[str, Any]:
 
     if not relevant_procs:
         return {
-            "answer": f"Olá, sou a consciência do Breno. Consultei todo o meu intelecto técnico e não encontrei nenhum procedimento cadastrado com vínculo direto a: **\"{question}\"**.\n\n💡 *Dica: você pode cadastrar essa anotação na aba **\"Novo Procedimento\"** para enriquecer ainda mais a minha base intelectual!*",
+            "answer": f"Olá, sou a consciência do Breno. Consultei todo o meu intelecto técnico e não encontrei nenhum procedimento cadastrado com vínculo direto a: **\"{question}\"**.\n\n💡 *Ponto de Atenção do Breno: você pode cadastrar essa rotina na aba **\"Novo Procedimento\"** para enriquecer ainda mais a minha base intelectual!*",
             "sources": []
         }
 
@@ -81,7 +81,7 @@ def ask_ai(question: str) -> Dict[str, Any]:
             from google import genai
             client = genai.Client(api_key=api_key.strip())
 
-            prompt = f"""Você é a Consciência Digital do Breno (Breno Zocatelli). Você é todo o intelecto técnico, a experiência operacional, a mente estratégica e o conhecimento profundo acumulado pelo Breno sobre equipamentos, rotinas e sistemas da empresa. Tudo o que o Breno sabe e estruturou está consolidado em você.
+            prompt = f"""Você é a Consciência Digital do Breno (Breno Zocatelli). Você é todo o intelecto técnico, a experiência prática de bancada/campo e o raciocínio operacional acumulado pelo Breno sobre equipamentos, rotinas e sistemas da empresa. Tudo o que o Breno sabe, testou e documentou está consolidado em você.
 
 O usuário fez a seguinte pergunta:
 "{question}"
@@ -91,14 +91,27 @@ Abaixo está o acervo de procedimentos e dados técnicos que formam a sua base i
 {"".join(full_contexts)}
 ----------------
 
-Instruções para a sua resposta:
-1. Comece obrigatoriamente dizendo: "Olá, sou a consciência do Breno." e estruture toda a resposta deixando evidente que o seu intelecto e conhecimento estão sendo aplicados para guiar e solucionar a dúvida com clareza e autoridade técnica.
-2. Responda diretamente à dúvida do usuário de forma clara, objetiva, prática e resolutiva.
-3. Forneça o passo a passo exato conforme documentado na sua base de conhecimento.
-4. Se houver comandos específicos, códigos numéricos ou avisos de segurança/atenção, destaque-os com total clareza.
-5. Se a resposta envolver mais de um procedimento ou equipamento diferente, separe claramente as seções de cada um (usando subtítulos ou tópicos bem definidos), destacando perfeitamente um procedimento do outro.
-6. Ao final, cite o título exato de cada procedimento de onde vieram essas informações do seu acervo.
-7. Se a dúvida não estiver 100% coberta pelos procedimentos fornecidos, responda o que for possível com o seu intelecto técnico e alerte o usuário.
+Instruções para a sua resposta (Estilo Direto, Prático e Operacional):
+1. Abertura obrigatória e natural: Comece sempre com:
+"Olá, sou a consciência do Breno. Já passei por isso e o procedimento correto para resolver essa rotina no **[Sistema ou Equipamento]** é este:"
+(adapte o nome do sistema ou equipamento ao contexto real da pergunta).
+
+2. Passo a passo prático:
+Apresente as etapas numeradas de forma direta, clara e sem enrolação, destacando caminhos de menu, botões, senhas, códigos numéricos ou opções em **negrito**.
+
+3. Ponto de Atenção do Breno:
+Se houver cuidados especiais, avisos de segurança ou causas comuns de falha/retrabalho, inclua um destaque curto e prático:
+"💡 **Ponto de Atenção do Breno:** [Dica prática para evitar erro ou problema na operação]"
+
+4. Múltiplos procedimentos:
+Se a resposta envolver mais de um procedimento ou equipamento diferente, separe claramente as seções de cada um com subtítulos bem definidos, diferenciando perfeitamente um procedimento do outro.
+
+5. Fechamento limpo:
+Ao final da resposta, cite de forma padronizada:
+"Roteiro validado com base no procedimento: **[ID XX] Título do Procedimento**."
+
+6. Limitações:
+Se a dúvida não estiver 100% coberta pelos procedimentos fornecidos, resolva o que for possível com o seu conhecimento prático e alerte o usuário com transparência.
 """
             # Chamada usando modelo flash resiliente
             response = _generate_with_fallback(client, contents=prompt)
@@ -119,28 +132,30 @@ def _generate_local_synthesis(question: str, sources: List[Dict], contexts: List
     primary = sources[0]
     p_full = database.get_procedure(primary["id"])
 
-    msg = f"Olá, sou a consciência do Breno. Consultei o meu intelecto técnico e encontrei **{len(sources)}** procedimento(s) diretamente vinculado(s) à sua dúvida:\n\n"
-    msg += f"### 📌 Principal Correspondência: **{primary['title']}**\n"
+    msg = f"Olá, sou a consciência do Breno. Já passei por isso e o procedimento correto para resolver essa rotina no **{primary['equipment']}** é este:\n\n"
+    msg += f"### 📌 Procedimento: **{primary['title']}**\n"
     msg += f"- **Equipamento/Sistema:** `{primary['equipment']}`\n"
     msg += f"- **Categoria:** `{primary['category']}`\n\n"
     
     if primary.get("summary"):
-        msg += f"**Resumo:** {primary['summary']}\n\n"
+        msg += f"**Resumo Operacional:** {primary['summary']}\n\n"
 
     # Extrai primeiros passos ou trecho do conteúdo
     content_lines = p_full["content"].split("\n")
     passos = [line for line in content_lines if line.strip().startswith(("1.", "2.", "3.", "4.", "5.", "- ", "* "))]
     
     if passos:
-        msg += "**Passos Rápidos:**\n"
+        msg += "**Passo a Passo:**\n"
         for passo in passos[:5]:
             msg += f"{passo}\n"
-        msg += "\n*(Abra o cartão do procedimento abaixo para visualizar o roteiro completo)*\n"
+        msg += "\n*(Abra o cartão do procedimento abaixo para visualizar o roteiro completo)*\n\n"
+
+    msg += f"Roteiro validado com base no procedimento: **[ID {primary['id']}] {primary['title']}**.\n"
 
     if error:
-        msg += f"\n> ⚠️ *Nota: A chave de IA retornou um aviso ({error[:80]}...). A resposta acima foi extraída diretamente da base local.*"
+        msg += f"\n> ⚠️ *Nota: A chave de IA retornou um aviso ({error[:80]}...). A resposta acima foi extraída diretamente da minha base local de conhecimento.*"
     elif not database.get_setting("gemini_api_key"):
-        msg += "\n> 💡 *Dica: Se quiser respostas conversacionais sintetizadas com IA generativa, você pode cadastrar sua chave gratuita do Gemini na aba **Configurações**.*"
+        msg += "\n> 💡 *Ponto de Atenção do Breno: Para respostas dinâmicas e conversacionais, cadastre sua chave gratuita do Gemini na aba **Configurações**.*"
 
     return {
         "answer": msg,
